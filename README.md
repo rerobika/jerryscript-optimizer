@@ -1,0 +1,1 @@
+# jerryscript_static_optimizer
