@@ -21,4 +21,6 @@ target_include_directories (optimizer-core
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
   PUBLIC ${JERRY_INCLUDE_DIR}
 )
-target_link_libraries (optimizer-core PRIVATE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libjerry-core${CMAKE_STATIC_LIBRARY_SUFFIX})
+target_link_libraries (optimizer-core
+  PRIVATE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libjerry-core${CMAKE_STATIC_LIBRARY_SUFFIX}
+  PRIVATE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libjerry-port-default${CMAKE_STATIC_LIBRARY_SUFFIX})
