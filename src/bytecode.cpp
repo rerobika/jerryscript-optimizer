@@ -19,6 +19,6 @@ Bytecode::Bytecode(ecma_value_t function) {
       ecma_op_function_get_compiled_code(ext_func));
 };
 
-Bytecode::~Bytecode() { ecma_deref_object(function_); };
+Bytecode::~Bytecode() { ecma_free_object(ecma_make_object_value(function_)); };
 
 } // namespace optimizer

@@ -15,9 +15,6 @@ extern "C" {
 #endif
 #define this this_value
 #include "ecma-function-object.h"
-#include "ecma-gc.h"
-#include "ecma-globals.h"
-#include "ecma-helpers.h"
 #undef this
 #ifdef __cplusplus
 }
