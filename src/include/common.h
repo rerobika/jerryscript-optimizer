@@ -6,9 +6,10 @@
  * according to those terms.
  */
 
-#ifndef INST_H
-#define INST_H
+#ifndef COMMON_H
+#define COMMON_H
 
-#include "common.h"
+#include <assert.h>
+#include <iostream>
 
-#endif // INST_H
+#endif // COMMON_H

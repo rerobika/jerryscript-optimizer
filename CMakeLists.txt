@@ -1,3 +1,10 @@
+# Copyright (c) 2020 Robert Fancsik
+#
+# Licensed under the BSD 3-Clause License
+# <LICENSE or https://opensource.org/licenses/BSD-3-Clause>.
+# This file may not be copied, modified, or distributed except
+# according to those terms.
+
 cmake_minimum_required (VERSION 3.5.0)
 project (jerryscript-optimizer)
 
@@ -15,7 +22,17 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(DEPS_DIR "${PROJECT_SOURCE_DIR}/deps")
 set(ARG_PARSE_DIR "${DEPS_DIR}/argparse")
+set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(JERRYSCRIPT_DIR "${DEPS_DIR}/jerryscript")
+set(JERRY_INCLUDE_DIR ${JERRYSCRIPT_DIR}/jerry-core/include)
+
+include(ExternalProject)
+
+# Include external projects
+include(cmake/jerryscript.cmake)
 
 add_subdirectory(src)
 add_subdirectory(main)
+
+
+

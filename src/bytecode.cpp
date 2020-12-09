@@ -6,9 +6,6 @@
  * according to those terms.
  */
 
-#ifndef INST_H
-#define INST_H
+#include "bytecode.h"
 
-#include "common.h"
-
-#endif // INST_H
+namespace optimizer {} // namespace optimizer

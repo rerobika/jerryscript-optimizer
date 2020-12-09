@@ -6,9 +6,12 @@
  * according to those terms.
  */
 
-#ifndef INST_H
-#define INST_H
+#include "snapshot-reader.h"
 
-#include "common.h"
+namespace optimizer {
 
-#endif // INST_H
+SnapshotReaderResult SnapshotReader::read() {
+  return {"unimplemented"};
+}
+
+} // namespace optimizer
