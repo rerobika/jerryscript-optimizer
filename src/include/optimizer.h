@@ -11,19 +11,19 @@
 
 #include "bytecode.h"
 #include "common.h"
-#include "snapshot-reader.h"
+#include "snapshot-readwriter.h"
 
 namespace optimizer {
 
 class Optimizer {
 public:
-  Optimizer(Bytecode *bytecode);
+  Optimizer(std::shared_ptr<Bytecode> bytecode);
   ~Optimizer();
 
   auto bytecode() const { return bytecode_; }
 
 private:
-  Bytecode *bytecode_;
+  std::shared_ptr<Bytecode> bytecode_;
 };
 
 } // namespace optimizer

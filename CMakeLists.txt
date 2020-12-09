@@ -24,7 +24,6 @@ set(DEPS_DIR "${PROJECT_SOURCE_DIR}/deps")
 set(ARG_PARSE_DIR "${DEPS_DIR}/argparse")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(JERRYSCRIPT_DIR "${DEPS_DIR}/jerryscript")
-set(JERRY_INCLUDE_DIR ${JERRYSCRIPT_DIR}/jerry-core/include)
 
 include(ExternalProject)
 

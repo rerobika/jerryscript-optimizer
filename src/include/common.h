@@ -11,5 +11,6 @@
 
 #include <assert.h>
 #include <iostream>
+#include <memory>
 
 #endif // COMMON_H

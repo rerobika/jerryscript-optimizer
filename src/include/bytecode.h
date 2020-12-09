@@ -10,27 +10,31 @@
 #define BYTECODE_H
 
 #include "common.h"
-
+#ifdef __cplusplus
+extern "C" {
+#endif
+#define this this_value
+#include "ecma-function-object.h"
+#include "ecma-gc.h"
+#include "ecma-globals.h"
+#include "ecma-helpers.h"
+#undef this
+#ifdef __cplusplus
+}
+#endif
 namespace optimizer {
 
 class Bytecode {
 public:
-  Bytecode() : buffer_(nullptr), size_(0) {}
-  Bytecode(uint8_t *buffer, size_t size) : buffer_(buffer), size_(size) {}
+  Bytecode(ecma_value_t function);
+  ~Bytecode();
 
-  auto buffer() const {
-    assert(buffer_ != nullptr);
-    return buffer_;
-  }
-
-  auto size() const {
-    assert(size_ != 0);
-    return size_;
-  }
+  auto compiled_code() const { return compiled_code_; }
+  auto function() const { return function_; }
 
 private:
-  uint8_t *buffer_;
-  size_t size_;
+  ecma_object_t *function_;
+  ecma_compiled_code_t *compiled_code_;
 };
 
 } // namespace optimizer

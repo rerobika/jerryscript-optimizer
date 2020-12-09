@@ -27,7 +27,7 @@ int main(int argc, char const *argv[]) {
 
   auto err = argparser.parse(argc, argv);
   if (err) {
-    std::cout << err << std::endl;
+    std::cerr << err << std::endl;
   }
 
   if (argparser.exists("help")) {
@@ -40,11 +40,11 @@ int main(int argc, char const *argv[]) {
   buff << input_stream.rdbuf();
   auto input_str = buff.str();
 
-  optimizer::SnapshotReader reader(input_str);
+  optimizer::SnapshotReadWriter reader(input_str);
   auto res = reader.read();
 
-  if (!res.bytecode()) {
-    std::cout << res.error() << std::endl;
+  if (res.failed()) {
+    std::cerr << "Snapshot parsing error: " << res.error() << std::endl;
     return 2;
   }
 

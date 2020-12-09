@@ -8,4 +8,17 @@
 
 #include "bytecode.h"
 
-namespace optimizer {} // namespace optimizer
+namespace optimizer {
+Bytecode::Bytecode(ecma_value_t function) {
+  assert(ecma_is_value_object(function));
+
+  function_ = ecma_get_object_from_value(function);
+  assert(ecma_get_object_type(function_) == ECMA_OBJECT_TYPE_FUNCTION);
+  auto ext_func = reinterpret_cast<ecma_extended_object_t *>(function_);
+  compiled_code_ = const_cast<ecma_compiled_code_t *>(
+      ecma_op_function_get_compiled_code(ext_func));
+};
+
+Bytecode::~Bytecode() { ecma_deref_object(function_); };
+
+} // namespace optimizer

@@ -12,9 +12,8 @@
 #include "optimizer.h"
 
 namespace optimizer {
-Optimizer::Optimizer(Bytecode *bytecode) : bytecode_(bytecode) {
-  jerry_init(JERRY_INIT_EMPTY);
-}
+Optimizer::Optimizer(std::shared_ptr<Bytecode> bytecode)
+    : bytecode_(bytecode) {}
 
-Optimizer::~Optimizer() { jerry_cleanup(); }
+Optimizer::~Optimizer() {}
 } // namespace optimizer

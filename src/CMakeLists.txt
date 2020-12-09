@@ -10,7 +10,7 @@ set(SRC
     bytecode.cpp
     inst.cpp
     optimizer.cpp
-    snapshot-reader.cpp
+    snapshot-readwriter.cpp
 )
 
 add_library(optimizer-core STATIC ${SRC})
@@ -19,7 +19,16 @@ add_dependencies(optimizer-core jerry-core)
 target_include_directories (optimizer-core
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
-  PUBLIC ${JERRY_INCLUDE_DIR}
+  PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/
+  PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/include
+  PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/jrt
+  PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/lit
+  PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/jmem
+  PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/ecma/base
+  PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/ecma/operations
+  PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/ecma/builtin-objects
+  PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/vm
+  PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/parser/js
 )
 target_link_libraries (optimizer-core
   PRIVATE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libjerry-core${CMAKE_STATIC_LIBRARY_SUFFIX}
