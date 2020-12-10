@@ -13,12 +13,10 @@ namespace optimizer {
 
 SnapshotReadWriter::SnapshotReadWriter(std::string &snapshot)
     : snapshot_(snapshot) {
-  jerry_init(JERRY_INIT_EMPTY);
+  jerry_init(JERRY_INIT_SHOW_OPCODES);
 }
 
-SnapshotReadWriter::~SnapshotReadWriter() {
-  jerry_cleanup();
-}
+SnapshotReadWriter::~SnapshotReadWriter() { jerry_cleanup(); }
 
 SnapshotReadResult SnapshotReadWriter::read() {
   jerry_value_t function = jerry_load_function_snapshot(
