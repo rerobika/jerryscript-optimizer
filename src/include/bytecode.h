@@ -36,6 +36,10 @@ public:
     return (flags_ & CBC_CODE_FLAGS_FULL_LITERAL_ENCODING) != 0;
   }
 
+  bool mappedArgumentsNeeded() {
+    return (flags_ & CBC_CODE_FLAGS_MAPPED_ARGUMENTS_NEEDED) != 0;
+  }
+
 private:
   uint16_t flags_;
 };
@@ -52,6 +56,7 @@ public:
     ident_end_ = args->ident_end;
     const_literal_end_ = args->const_literal_end;
     literal_end_ = args->literal_end;
+    size_ = static_cast<uint16_t>(sizeof(cbc_uint16_arguments_t));
   }
 
   void setArguments(cbc_uint8_arguments_t *args) {
@@ -60,12 +65,16 @@ public:
     ident_end_ = static_cast<uint16_t>(args->ident_end);
     const_literal_end_ = static_cast<uint16_t>(args->const_literal_end);
     literal_end_ = static_cast<uint16_t>(args->literal_end);
+    size_ = static_cast<uint16_t>(sizeof(cbc_uint8_arguments_t));
   }
 
   void setEncoding(uint16_t limit, uint16_t delta) {
     encoding_limit_ = limit;
     encoding_delta_ = delta;
   }
+
+  auto registerCount() { return register_end_ - argument_end_; }
+  auto literalCount() { return literal_end_ - register_end_; }
 
   auto argument_end() const { return argument_end_; }
   auto register_end() const { return register_end_; }
@@ -74,6 +83,7 @@ public:
   auto literal_end() const { return literal_end_; }
   auto encoding_limit() const { return encoding_limit_; }
   auto encoding_delta() const { return encoding_delta_; }
+  auto size() const { return size_; }
 
 private:
   uint16_t argument_end_;
@@ -83,6 +93,7 @@ private:
   uint16_t literal_end_;
   uint16_t encoding_limit_;
   uint16_t encoding_delta_;
+  uint16_t size_;
 };
 
 class LiteralPool {
@@ -109,6 +120,11 @@ public:
   Bytecode(ecma_value_t function);
   ~Bytecode();
 
+#define CBC_OPCODE(arg1, arg2, arg3, arg4) arg4,
+  static constexpr uint16_t decode_table[] = {CBC_OPCODE_LIST};
+  static constexpr uint16_t decode_table_ext[] = {CBC_EXT_OPCODE_LIST};
+#undef CBC_OPCODE
+
   auto compiled_code() const { return compiled_code_; }
   auto function() const { return function_; }
   auto flags() const { return flags_; }
@@ -117,6 +133,7 @@ public:
   void setArguments(cbc_uint16_arguments_t *args);
   void setArguments(cbc_uint8_arguments_t *args);
   void setEncoding();
+  void setBytecodeEnd();
 
 private:
   void decodeHeader();
@@ -125,6 +142,7 @@ private:
   ecma_object_t *function_;
   ecma_compiled_code_t *compiled_code_;
   uint8_t *byte_code_start_;
+  uint8_t *byte_code_end_;
   BytecodeFlags flags_;
   BytecodeArguments args_;
   LiteralPool literal_pool_;

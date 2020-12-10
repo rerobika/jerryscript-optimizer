@@ -44,6 +44,11 @@ void Bytecode::setEncoding() {
   args_.setEncoding(limit, delta);
 }
 
+void Bytecode::setBytecodeEnd() {
+  byte_code_end_ = reinterpret_cast<uint8_t *>(
+      ecma_compiled_code_resolve_arguments_start(compiled_code_));
+}
+
 void Bytecode::decodeHeader() {
   flags_.setFlags(compiled_code_->status_flags);
 
@@ -56,9 +61,26 @@ void Bytecode::decodeHeader() {
   }
 
   setEncoding();
+  setBytecodeEnd();
 }
 
-void Bytecode::buildInstructions() {}
+void Bytecode::buildInstructions() {
+  uint8_t *bytecode = byte_code_start_;
+
+  while (bytecode < byte_code_end_) {
+    uint16_t opcode = *bytecode++;
+    uint32_t opcode_data;
+
+    if (opcode == CBC_EXT_OPCODE) {
+      opcode = *bytecode++;
+      opcode_data = decode_table_ext[opcode];
+      opcode += 256;
+    } else {
+      opcode_data = decode_table[opcode];
+    }
+    (void)opcode_data;
+  }
+}
 
 Bytecode::~Bytecode() { ecma_free_object(ecma_make_object_value(function_)); };
 

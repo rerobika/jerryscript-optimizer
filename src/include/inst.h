@@ -11,4 +11,24 @@
 
 #include "common.h"
 
+class Argument {
+  enum Type {
+
+  };
+
+public:
+  Argument() {}
+
+private:
+};
+
+class Inst {
+public:
+  Inst() {}
+
+private:
+  std::vector<std::unique_ptr<Argument>> args_;
+  Inst *dest_;
+};
+
 #endif // INST_H

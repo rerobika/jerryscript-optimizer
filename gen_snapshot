@@ -1,0 +1,3 @@
+#!/bin/bash
+
+./jerry-snapshot generate work.js -o work.snapshot
