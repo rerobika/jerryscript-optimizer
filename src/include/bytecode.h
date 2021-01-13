@@ -10,6 +10,7 @@
 #define BYTECODE_H
 
 #include "common.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -76,13 +77,13 @@ public:
   auto registerCount() { return register_end_ - argument_end_; }
   auto literalCount() { return literal_end_ - register_end_; }
 
-  auto argument_end() const { return argument_end_; }
-  auto register_end() const { return register_end_; }
-  auto ident_end() const { return ident_end_; }
-  auto const_literal_end() const { return const_literal_end_; }
-  auto literal_end() const { return literal_end_; }
-  auto encoding_limit() const { return encoding_limit_; }
-  auto encoding_delta() const { return encoding_delta_; }
+  auto argumentEnd() const { return argument_end_; }
+  auto registerEnd() const { return register_end_; }
+  auto identEnd() const { return ident_end_; }
+  auto constLiteralEnd() const { return const_literal_end_; }
+  auto literalEnd() const { return literal_end_; }
+  auto encodingLimit() const { return encoding_limit_; }
+  auto encodingDelta() const { return encoding_delta_; }
   auto size() const { return size_; }
 
 private:
@@ -105,7 +106,7 @@ public:
 
   uint8_t *setLiteralPool(void *literal_start, BytecodeArguments &args) {
     literal_start_ = reinterpret_cast<ecma_value_t *>(literal_start);
-    size_ = args.literal_end();
+    size_ = args.literalEnd();
 
     return reinterpret_cast<uint8_t *>(literal_start_ + size_);
   }
@@ -120,20 +121,20 @@ public:
   Bytecode(ecma_value_t function);
   ~Bytecode();
 
-#define CBC_OPCODE(arg1, arg2, arg3, arg4) arg4,
-  static constexpr uint16_t decode_table[] = {CBC_OPCODE_LIST};
-  static constexpr uint16_t decode_table_ext[] = {CBC_EXT_OPCODE_LIST};
-#undef CBC_OPCODE
+  auto compiledCode() const { return compiled_code_; }
+  auto args() const { return args_; }
 
-  auto compiled_code() const { return compiled_code_; }
   auto function() const { return function_; }
   auto flags() const { return flags_; }
-  auto literal_pool() const { return literal_pool_; }
+  auto literalPool() const { return literal_pool_; }
 
   void setArguments(cbc_uint16_arguments_t *args);
   void setArguments(cbc_uint8_arguments_t *args);
   void setEncoding();
   void setBytecodeEnd();
+
+  uint8_t next() { return *byte_code_++; };
+  uint8_t current() { return *byte_code_; };
 
 private:
   void decodeHeader();
@@ -141,6 +142,7 @@ private:
 
   ecma_object_t *function_;
   ecma_compiled_code_t *compiled_code_;
+  uint8_t *byte_code_;
   uint8_t *byte_code_start_;
   uint8_t *byte_code_end_;
   BytecodeFlags flags_;

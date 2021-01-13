@@ -14,4 +14,6 @@
 #include <memory>
 #include <vector>
 
+#define unreachable() assert(0)
+
 #endif // COMMON_H

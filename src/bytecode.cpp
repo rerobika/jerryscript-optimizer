@@ -7,6 +7,7 @@
  */
 
 #include "bytecode.h"
+#include "inst.h"
 
 namespace optimizer {
 
@@ -26,11 +27,13 @@ Bytecode::Bytecode(ecma_value_t function) {
 void Bytecode::setArguments(cbc_uint16_arguments_t *args) {
   args_.setArguments(args);
   byte_code_start_ = literal_pool_.setLiteralPool(args + 1, args_);
+  byte_code_ = byte_code_start_;
 }
 
 void Bytecode::setArguments(cbc_uint8_arguments_t *args) {
   args_.setArguments(args);
   byte_code_start_ = literal_pool_.setLiteralPool(args + 1, args_);
+  byte_code_ = byte_code_start_;
 }
 
 void Bytecode::setEncoding() {
@@ -65,20 +68,12 @@ void Bytecode::decodeHeader() {
 }
 
 void Bytecode::buildInstructions() {
-  uint8_t *bytecode = byte_code_start_;
+  while (byte_code_ < byte_code_end_) {
+    Inst inst(this);
 
-  while (bytecode < byte_code_end_) {
-    uint16_t opcode = *bytecode++;
-    uint32_t opcode_data;
-
-    if (opcode == CBC_EXT_OPCODE) {
-      opcode = *bytecode++;
-      opcode_data = decode_table_ext[opcode];
-      opcode += 256;
-    } else {
-      opcode_data = decode_table[opcode];
-    }
-    (void)opcode_data;
+    inst.decodeCBCOpcode();
+    inst.decodeArguments();
+    inst.decodeGroupOpcode();
   }
 }
 
