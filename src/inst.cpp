@@ -55,7 +55,7 @@ void Inst::decodeArguments() {
   }
   case OperandType::BRANCH: {
     uint32_t offset_length = CBC_BRANCH_OFFSET_LENGTH(byteCode()->current());
-    uint32_t offset = byteCode()->next();
+    int32_t offset = byteCode()->next();
 
     if (offset_length > 1) {
       offset <<= 8;
@@ -66,6 +66,10 @@ void Inst::decodeArguments() {
         offset <<= 8;
         offset |= byteCode()->next();
       }
+    }
+
+    if (OpcodeData().isBackwardBrach()) {
+      offset = -offset;
     }
 
     argument.setBranchOffset(offset);
@@ -109,16 +113,25 @@ void Inst::decodeArguments() {
   argument_ = argument;
 }
 
-void Inst::decodeCBCOpcode() {
+bool Inst::decodeCBCOpcode() {
   CBCOpcode cbc_op = byteCode()->next();
   Opcode opcode(cbc_op);
 
-  if (cbc_op == CBC_EXT_OPCODE) {
+  if (Opcode::isExtOpcode(cbc_op)) {
+    if (!byteCode()->hasNext()) {
+      return false;
+    }
+
     CBCOpcode cbc_op = byteCode()->next();
+
+    if (Opcode::isEndOpcode(cbc_op)) {
+      return false;
+    }
     opcode.toExtOpcode(cbc_op);
   }
 
   opcode_ = opcode;
+  return true;
 }
 
 void Inst::decodeGroupOpcode() {

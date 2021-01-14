@@ -37,7 +37,11 @@ enum class OperandType {
   LITERAL_LITERAL,
   STACK_LITERAL,
   THIS_LITERAL,
-  OPERAND_TYPE__COUNT
+  OPERAND_TYPE__COUNT,
+};
+
+enum class OperandFlags {
+  BACKWARD_BRANCH = VM_OC_BACKWARD_BRANCH,
 };
 
 enum class ResultType { IDENT, REFERENCE, STACK, BLOCK, RESULT_TYPE__COUNT };
@@ -62,7 +66,8 @@ private:
 class Argument {
 public:
   Argument() : Argument(OperandType::OPERAND_TYPE__COUNT) {}
-  Argument(OperandType type) : type_(type), branch_offset_(0), stack_delta_(0) {}
+  Argument(OperandType type)
+      : type_(type), branch_offset_(0), stack_delta_(0) {}
 
   auto branchOffset() const { return branch_offset_; }
   auto type() const { return type_; }
@@ -70,7 +75,7 @@ public:
   auto &firstLiteral() { return first_literal_; }
   auto &secondLiteral() { return second_literal_; }
 
-  void setBranchOffset(uint32_t offset) {
+  void setBranchOffset(int32_t offset) {
     assert(type() == OperandType::BRANCH);
     branch_offset_ = offset;
   }
@@ -94,7 +99,7 @@ public:
 
 private:
   OperandType type_;
-  uint32_t branch_offset_;
+  int32_t branch_offset_;
   int32_t stack_delta_;
   Literal first_literal_;
   Literal second_literal_;
@@ -121,6 +126,12 @@ public:
                                    VM_OC_PUT_RESULT_MASK);
   }
 
+  bool isBackwardBrach() const {
+    return (data() & static_cast<uint32_t>(OperandFlags::BACKWARD_BRANCH)) != 0;
+  }
+
+  bool isForwardBrach() const { return !isBackwardBrach(); }
+
 private:
   uint32_t data_;
 };
@@ -134,10 +145,17 @@ public:
   auto opcode() const { return opcode_; }
   auto opcodeData() const { return opcode_data_; }
 
-  bool isExtOpcode() const { return opcode() > CBC_END; }
+  bool isExtOpcode() const { return Opcode::isExtOpcode(opcode()); }
+
+  static bool isExtOpcode(CBCOpcode opcode) { return opcode > CBC_END; }
+  static bool isEndOpcode(CBCOpcode opcode) { return opcode == CBC_EXT_NOP; }
+  static bool isExtStartOpcode(CBCOpcode opcode) {
+    return opcode == CBC_EXT_OPCODE;
+  }
 
   void toExtOpcode(CBCOpcode cbc_op) {
-    assert(opcode_ == CBC_EXT_OPCODE);
+    assert(Opcode::isExtStartOpcode(opcode()));
+    assert(!Opcode::isEndOpcode(cbc_op));
     opcode_data_ = decode_table[cbc_op + CBC_END + 1];
     opcode_ = cbc_op + 256;
   }
@@ -158,7 +176,7 @@ public:
   LiteralIndex decodeLiteralIndex();
   Literal decodeLiteral();
   void decodeArguments();
-  void decodeCBCOpcode();
+  bool decodeCBCOpcode();
   void decodeGroupOpcode();
 
 private:

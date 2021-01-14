@@ -133,8 +133,12 @@ public:
   void setEncoding();
   void setBytecodeEnd();
 
-  uint8_t next() { return *byte_code_++; };
+  uint8_t next() {
+    assert(hasNext());
+    return *byte_code_++;
+  };
   uint8_t current() { return *byte_code_; };
+  bool hasNext() { return byte_code_ < byte_code_end_; };
 
 private:
   void decodeHeader();

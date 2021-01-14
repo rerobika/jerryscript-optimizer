@@ -71,7 +71,9 @@ void Bytecode::buildInstructions() {
   while (byte_code_ < byte_code_end_) {
     Inst inst(this);
 
-    inst.decodeCBCOpcode();
+    if (!inst.decodeCBCOpcode()) {
+      break;
+    }
     inst.decodeArguments();
     inst.decodeGroupOpcode();
   }
