@@ -10,6 +10,7 @@
 #define BYTECODE_H
 
 #include "common.h"
+#include "stack.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -127,6 +128,7 @@ public:
   auto function() const { return function_; }
   auto flags() const { return flags_; }
   auto literalPool() const { return literal_pool_; }
+  auto &stack() { return stack_; }
 
   void setArguments(cbc_uint16_arguments_t *args);
   void setArguments(cbc_uint8_arguments_t *args);
@@ -152,6 +154,7 @@ private:
   BytecodeFlags flags_;
   BytecodeArguments args_;
   LiteralPool literal_pool_;
+  Stack stack_;
 };
 
 } // namespace optimizer

@@ -10,7 +10,6 @@
 #define INST_H
 
 #include "bytecode.h"
-#include "common.h"
 #include "vm.h"
 
 namespace optimizer {
@@ -66,8 +65,7 @@ private:
 class Argument {
 public:
   Argument() : Argument(OperandType::OPERAND_TYPE__COUNT) {}
-  Argument(OperandType type)
-      : type_(type), branch_offset_(0), stack_delta_(0) {}
+  Argument(OperandType type) : type_(type), branch_offset_(0) {}
 
   auto branchOffset() const { return branch_offset_; }
   auto type() const { return type_; }
@@ -80,10 +78,7 @@ public:
     branch_offset_ = offset;
   }
 
-  void setStackDelta(int32_t delta) {
-    assert(type() == OperandType::STACK || type() == OperandType::STACK_STACK);
-    stack_delta_ = delta;
-  }
+  void setStackDelta(int32_t delta) { stack_delta_ = delta; }
 
   void setFirstLiteral(Literal &literal) {
     assert(isLiteral());
@@ -167,11 +162,15 @@ private:
 
 class Inst {
 public:
-  Inst(Bytecode *byte_code) : byte_code_(byte_code) {}
+  Inst(Bytecode *byte_code) : byte_code_(byte_code), stack_snapshot_(nullptr) {}
+
+  ~Inst() { delete stack_snapshot_; }
 
   auto byteCode() const { return byte_code_; }
   auto opcode() const { return opcode_; }
   auto argument() const { return argument_; }
+  auto stackSnapshot() const { return stack_snapshot_; }
+  auto& stack() { return byteCode()->stack(); }
 
   LiteralIndex decodeLiteralIndex();
   Literal decodeLiteral();
@@ -181,6 +180,7 @@ public:
 
 private:
   Bytecode *byte_code_;
+  Stack *stack_snapshot_;
   Opcode opcode_;
   Argument argument_;
 };

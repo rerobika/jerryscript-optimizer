@@ -11,6 +11,8 @@ set(SRC
     inst.cpp
     optimizer.cpp
     snapshot-readwriter.cpp
+    stack.cpp
+    value.cpp
 )
 
 add_library(optimizer-core STATIC ${SRC})

@@ -137,12 +137,24 @@ bool Inst::decodeCBCOpcode() {
 void Inst::decodeGroupOpcode() {
   auto groupOpcode = opcode().opcodeData().groupOpcode();
   switch (groupOpcode) {
-  case VM_OC_VAR_EVAL: {
 
+  case VM_OC_POP: {
+    stack().pop();
     break;
   }
-  default: {
-
+  case VM_OC_POP_BLOCK: {
+    stack().pop();
+    break;
+  }
+  case VM_OC_PUSH: {
+    stack().push();
+    break;
+  }
+  case VM_OC_PUSH_TWO: {
+    stack().push(2);
+    break;
+  }
+  default:{
     break;
   }
   }

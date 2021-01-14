@@ -65,10 +65,11 @@ void Bytecode::decodeHeader() {
 
   setEncoding();
   setBytecodeEnd();
+  stack_ = Stack(args().registerCount());
 }
 
 void Bytecode::buildInstructions() {
-  while (byte_code_ < byte_code_end_) {
+  while (hasNext()) {
     Inst inst(this);
 
     if (!inst.decodeCBCOpcode()) {
