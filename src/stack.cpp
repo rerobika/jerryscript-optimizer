@@ -10,13 +10,18 @@
 
 namespace optimizer {
 
-void Stack::pop(uint32_t delta) {
-  assert(stackDelta() > 0);
-  stack_delta_ -= delta;
+ValueRef Stack::pop() {
+  assert(size() > registerSize());
+  ValueRef value = data().back();
+  data().pop_back();
+  return value;
 }
 
-void Stack::push(uint32_t delta) {
-  assert(stackDelta() + delta < stackSize());
-  stack_delta_ += delta;
+void Stack::push(ValueRef value) { assert(size() + 1 < fullSize()); }
+
+void Stack::resetOperands() {
+  setLeft(Value::_undefined());
+  setRight(Value::_undefined());
 }
+
 } // namespace optimizer

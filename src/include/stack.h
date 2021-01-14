@@ -16,31 +16,43 @@ namespace optimizer {
 
 class Stack {
 public:
-  Stack() : Stack(0) {}
-  Stack(uint32_t stack_size)
-      : stack_size_(stack_size), stack_delta_(0),
+  Stack() : Stack(0, 0) {}
+  Stack(uint32_t stack_limit, uint32_t register_size)
+      : stack_limit_(stack_limit), register_size_(register_size),
         block_result_(Value::_undefined()) {
-    stack_ = new Value[stack_size];
+    data_.resize(stack_limit + register_size_);
+
+    for (uint32_t i = 0; i < register_size; i++) {
+      data_.push_back(Value::_any());
+    }
   }
 
-  ~Stack() { delete[] stack_; }
+  auto data() const { return data_; }
+  auto size() const { return data().size(); }
+  auto registerSize() const { return register_size_; }
+  auto fullSize() const { return stack_limit_; }
+  auto left() const { return left_; }
+  auto right() const { return right_; }
 
-  auto stackDelta() const { return stack_delta_; }
-  auto stackSize() const { return stack_size_; }
-  auto stack() const { return stack_; }
+  void setLeft(ValueRef value) { left_ = value; }
+  void setRight(ValueRef value) { right_ = value; }
+  void setBlockResult(ValueRef value) { block_result_ = value; }
 
-  auto stackTop() const { return stack() + stackDelta(); }
+  void resetOperands();
 
-  void setStackDelta(int32_t delta) { stack_delta_ = delta; }
+  ValueRef &getRegister(int i) { return data_[i]; }
+  ValueRef &getStack(int i) { return data_[registerSize() + i]; }
 
-  void pop(uint32_t delta = 1);
-  void push(uint32_t delta = 1);
+  ValueRef pop();
+  void push(ValueRef value);
 
 private:
-  uint32_t stack_size_;
-  uint32_t stack_delta_;
-  Value *stack_;
-  Value block_result_;
+  std::vector<ValueRef> data_;
+  uint32_t stack_limit_;
+  uint32_t register_size_;
+  ValueRef block_result_;
+  ValueRef left_;
+  ValueRef right_;
 };
 
 } // namespace optimizer

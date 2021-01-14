@@ -17,6 +17,7 @@ extern "C" {
 namespace optimizer {
 
 class Literal;
+class Value;
 
 enum class ValueType {
   ANY,
@@ -27,10 +28,10 @@ enum class ValueType {
   PRIMITIVE,
 };
 
+using ValueRef = std::shared_ptr<Value>;
+
 class Value {
 public:
-  Value();
-  Value(ValueType type);
   Value(ecma_value_t value);
   Value(ecma_value_t number, ValueType type);
 
@@ -39,17 +40,35 @@ public:
 
   ~Value();
 
-  static ecma_value_t _undefined() { return ECMA_VALUE_UNDEFINED; }
+  static ValueRef _value(ecma_value_t value) {
+    return std::make_shared<Value>(value);
+  }
+  static ValueRef _any() { return std::make_shared<Value>(0, ValueType::ANY); }
 
-  static ecma_value_t _null() { return ECMA_VALUE_NULL; }
+  static ValueRef _object() {
+    return std::make_shared<Value>(0, ValueType::OBJECT);
+  }
 
-  static ecma_value_t _true() { return ECMA_VALUE_TRUE; }
+  static ValueRef _undefined() {
+    return std::make_shared<Value>(ECMA_VALUE_UNDEFINED, ValueType::PRIMITIVE);
+  }
 
-  static ecma_value_t _false() { return ECMA_VALUE_FALSE; }
+  static ValueRef _null() {
+    return std::make_shared<Value>(ECMA_VALUE_NULL, ValueType::PRIMITIVE);
+  }
+
+  static ValueRef _true() {
+    return std::make_shared<Value>(ECMA_VALUE_TRUE, ValueType::PRIMITIVE);
+  }
+
+  static ValueRef _false() {
+    return std::make_shared<Value>(ECMA_VALUE_FALSE, ValueType::PRIMITIVE);
+  }
 
 private:
   ecma_value_t value_;
   ValueType type_;
 };
+
 } // namespace optimizer
 #endif // VALUE_H

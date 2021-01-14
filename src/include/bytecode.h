@@ -20,6 +20,8 @@ extern "C" {
 
 namespace optimizer {
 
+using LiteralIndex = uint16_t;
+
 class BytecodeFlags {
 public:
   BytecodeFlags(){};
@@ -45,9 +47,7 @@ private:
 
 class BytecodeArguments {
 public:
-  BytecodeArguments()
-      : argument_end_(0), register_end_(0), ident_end_(0),
-        const_literal_end_(0), literal_end_(0) {}
+  BytecodeArguments() = default;
 
   void setArguments(cbc_uint16_arguments_t *args) {
     argument_end_ = args->argument_end;
@@ -55,6 +55,7 @@ public:
     ident_end_ = args->ident_end;
     const_literal_end_ = args->const_literal_end;
     literal_end_ = args->literal_end;
+    stack_limit_ = args->stack_limit;
     size_ = static_cast<uint16_t>(sizeof(cbc_uint16_arguments_t));
   }
 
@@ -64,6 +65,7 @@ public:
     ident_end_ = static_cast<uint16_t>(args->ident_end);
     const_literal_end_ = static_cast<uint16_t>(args->const_literal_end);
     literal_end_ = static_cast<uint16_t>(args->literal_end);
+    stack_limit_ = static_cast<uint16_t>(args->stack_limit);
     size_ = static_cast<uint16_t>(sizeof(cbc_uint8_arguments_t));
   }
 
@@ -80,6 +82,7 @@ public:
   auto identEnd() const { return ident_end_; }
   auto constLiteralEnd() const { return const_literal_end_; }
   auto literalEnd() const { return literal_end_; }
+  auto stackLimit() const { return stack_limit_; }
   auto encodingLimit() const { return encoding_limit_; }
   auto encodingDelta() const { return encoding_delta_; }
   auto size() const { return size_; }
@@ -92,6 +95,7 @@ private:
   uint16_t literal_end_;
   uint16_t encoding_limit_;
   uint16_t encoding_delta_;
+  uint16_t stack_limit_;
   uint16_t size_;
 };
 
@@ -101,6 +105,11 @@ public:
 
   auto literalStart() const { return literal_start_; }
   auto size() const { return size_; }
+
+  ValueRef getLiteral(LiteralIndex index) {
+    assert(index < size());
+    return Value::_value(literalStart()[index]);
+  }
 
   uint8_t *setLiteralPool(void *literalStart, BytecodeArguments &args) {
     literal_start_ = reinterpret_cast<ecma_value_t *>(literalStart);

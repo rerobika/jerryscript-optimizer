@@ -65,7 +65,7 @@ void Bytecode::decodeHeader() {
 
   setEncoding();
   setBytecodeEnd();
-  stack_ = Stack(args().registerCount());
+  stack_ = Stack(args().stackLimit(), args().registerCount());
 }
 
 void Bytecode::buildInstructions() {

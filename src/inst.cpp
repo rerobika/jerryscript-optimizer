@@ -10,6 +10,34 @@
 
 namespace optimizer {
 
+ValueRef Literal::toValueRef(Bytecode *byte_code) {
+  switch (type()) {
+  case LiteralType::ARGUMENT: {
+    assert(index() < byte_code->args().argumentEnd());
+    return Value::_any();
+  }
+  case LiteralType::REGISTER: {
+    assert(index() < byte_code->args().registerEnd());
+    return byte_code->stack().getRegister(index());
+  }
+  case LiteralType::IDENT: {
+    assert(index() < byte_code->args().identEnd());
+    return Value::_any();
+  }
+  case LiteralType::CONSTANT: {
+    assert(index() < byte_code->args().constLiteralEnd());
+    return byte_code->literalPool().getLiteral(index());
+    break;
+  }
+  case LiteralType::TEMPLATE: {
+    return Value::_object();
+  }
+  default: {
+    unreachable();
+  }
+  }
+}
+
 #define CBC_OPCODE(arg1, arg2, arg3, arg4) arg4,
 uint16_t decode_table[] = {CBC_OPCODE_LIST CBC_EXT_OPCODE_LIST};
 #undef CBC_OPCODE
@@ -49,6 +77,8 @@ Literal Inst::decodeLiteral() {
 void Inst::decodeArguments() {
   Argument argument(opcode().opcodeData().operands());
 
+  stack().resetOperands();
+
   switch (argument.type()) {
   case OperandType::NONE: {
     break;
@@ -77,15 +107,22 @@ void Inst::decodeArguments() {
   }
   case OperandType::STACK: {
     argument.setStackDelta(-1);
+
+    stack().setLeft(stack().pop());
     break;
   }
   case OperandType::STACK_STACK: {
     argument.setStackDelta(-2);
+
+    stack().setRight(stack().pop());
+    stack().setLeft(stack().pop());
     break;
   }
   case OperandType::LITERAL: {
     Literal first_literal = decodeLiteral();
     argument.setFirstLiteral(first_literal);
+
+    stack().setLeft(first_literal.toValueRef(byteCode()));
     break;
   }
   case OperandType::LITERAL_LITERAL: {
@@ -93,17 +130,26 @@ void Inst::decodeArguments() {
     Literal second_literal = decodeLiteral();
     argument.setFirstLiteral(first_literal);
     argument.setSecondLiteral(second_literal);
+
+    stack().setLeft(first_literal.toValueRef(byteCode()));
+    stack().setRight(second_literal.toValueRef(byteCode()));
     break;
   }
   case OperandType::STACK_LITERAL: {
     Literal first_literal = decodeLiteral();
     argument.setFirstLiteral(first_literal);
     argument.setStackDelta(-1);
+
+    stack().setLeft(first_literal.toValueRef(byteCode()));
+    stack().setRight(stack().pop());
     break;
   }
   case OperandType::THIS_LITERAL: {
     Literal first_literal = decodeLiteral();
     argument.setFirstLiteral(first_literal);
+
+    stack().setLeft(Value::_object());
+    stack().setRight(first_literal.toValueRef(byteCode()));
     break;
   }
   default:
@@ -143,18 +189,30 @@ void Inst::decodeGroupOpcode() {
     break;
   }
   case VM_OC_POP_BLOCK: {
-    stack().pop();
+    stack().setBlockResult(stack().pop());
     break;
   }
   case VM_OC_PUSH: {
-    stack().push();
+    stack().push(stack().left());
     break;
   }
   case VM_OC_PUSH_TWO: {
-    stack().push(2);
+    stack().push(stack().left());
+    stack().push(stack().right());
     break;
   }
-  default:{
+  case VM_OC_PUSH_THREE: {
+    stack().push(stack().left());
+    stack().push(stack().right());
+    Literal third_literal = decodeLiteral();
+
+    stack().push(third_literal.toValueRef(byteCode()));
+    break;
+  }
+  case VM_OC_NONE: {
+    break;
+  }
+  default: {
     break;
   }
   }

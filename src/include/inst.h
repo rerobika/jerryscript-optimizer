@@ -49,12 +49,13 @@ enum class ResultType { IDENT, REFERENCE, STACK, BLOCK, RESULT_TYPE__COUNT };
 
 using CBCOpcode = uint16_t;
 using GroupOpcode = vm_oc_types;
-using LiteralIndex = uint16_t;
 
 class Literal {
 public:
   Literal() : Literal(LiteralType::LITERAL_TYPE__COUNT, 0) {}
   Literal(LiteralType type, LiteralIndex index) : type_(type), index_(index) {}
+
+  ValueRef toValueRef(Bytecode *byte_code);
 
   auto type() const { return type_; }
   auto index() const { return index_; }

@@ -9,11 +9,6 @@
 #include "value.h"
 
 namespace optimizer {
-Value::Value() : Value(0, ValueType::ANY) {}
-
-Value::Value(ValueType type) : Value(0, ValueType::OBJECT) {
-  assert(type == ValueType::OBJECT);
-}
 
 Value::Value(ecma_value_t value) {
   value_ = value;
