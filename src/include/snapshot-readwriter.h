@@ -16,17 +16,16 @@ namespace optimizer {
 
 class SnapshotReadResult {
 public:
-  SnapshotReadResult(std::shared_ptr<Bytecode> bytecode)
-      : bytecode_(bytecode), error_("") {}
+  SnapshotReadResult(BytecodeRefList &&list) : list_(list), error_("") {}
   SnapshotReadResult(std::string error) : error_(error) {}
 
-  auto bytecode() const { return bytecode_; }
+  auto &list() { return list_; }
   auto error() const { return error_; }
 
   bool failed() { return error_.length() != 0; }
 
 private:
-  std::shared_ptr<Bytecode> bytecode_;
+  BytecodeRefList list_;
   std::string error_;
 };
 

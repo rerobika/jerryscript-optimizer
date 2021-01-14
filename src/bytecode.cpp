@@ -14,14 +14,46 @@ namespace optimizer {
 Bytecode::Bytecode(ecma_value_t function) {
   assert(ecma_is_value_object(function));
 
-  function_ = ecma_get_object_from_value(function);
-  assert(ecma_get_object_type(function_) == ECMA_OBJECT_TYPE_FUNCTION);
-  auto ext_func = reinterpret_cast<ecma_extended_object_t *>(function_);
+  auto func = ecma_get_object_from_value(function);
+  assert(ecma_get_object_type(func) == ECMA_OBJECT_TYPE_FUNCTION);
+  auto ext_func = reinterpret_cast<ecma_extended_object_t *>(func);
+
+  function_ = function;
   compiled_code_ = const_cast<ecma_compiled_code_t *>(
       ecma_op_function_get_compiled_code(ext_func));
 
-  decodeHeader();
   buildInstructions();
+}
+
+Bytecode::Bytecode(ecma_compiled_code_t *compiled_code)
+    : function_(ECMA_VALUE_UNDEFINED), compiled_code_(compiled_code) {
+  buildInstructions();
+}
+
+void Bytecode::readSubFunctions(BytecodeRefList &list, BytecodeRef byte_code) {
+  if (!byte_code->flags().isFunction()) {
+    return;
+  }
+
+  for (uint32_t i = byte_code->args().constLiteralEnd();
+       i < byte_code->args().literalEnd(); i++) {
+    ecma_compiled_code_t *bytecode_literal_p = ECMA_GET_INTERNAL_VALUE_POINTER(
+        ecma_compiled_code_t, byte_code->literalPool().literalStart()[i]);
+
+    if (bytecode_literal_p != byte_code->compiledCode()) {
+      list.emplace_back(std::make_shared<Bytecode>(bytecode_literal_p));
+      readSubFunctions(list, list.back());
+    }
+  }
+}
+
+BytecodeRefList Bytecode::readFunctions(ecma_value_t function) {
+  BytecodeRefList list;
+
+  list.emplace_back(std::make_shared<Bytecode>(function));
+  readSubFunctions(list, list.back());
+
+  return list;
 }
 
 void Bytecode::setArguments(cbc_uint16_arguments_t *args) {
@@ -69,6 +101,8 @@ void Bytecode::decodeHeader() {
 }
 
 void Bytecode::buildInstructions() {
+  decodeHeader();
+
   while (hasNext()) {
     Inst inst(this);
 
@@ -80,6 +114,6 @@ void Bytecode::buildInstructions() {
   }
 }
 
-Bytecode::~Bytecode() { ecma_free_object(ecma_make_object_value(function_)); };
+Bytecode::~Bytecode() { ecma_free_value(function_); };
 
 } // namespace optimizer

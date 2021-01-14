@@ -163,7 +163,7 @@ bool Inst::decodeCBCOpcode() {
   CBCOpcode cbc_op = byteCode()->next();
   Opcode opcode(cbc_op);
 
-  if (Opcode::isExtOpcode(cbc_op)) {
+  if (Opcode::isExtStartOpcode(cbc_op)) {
     if (!byteCode()->hasNext()) {
       return false;
     }

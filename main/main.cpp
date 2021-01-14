@@ -48,7 +48,7 @@ int main(int argc, char const *argv[]) {
     return 2;
   }
 
-  optimizer::Optimizer optimizer(res.bytecode());
+  optimizer::Optimizer optimizer(res.list());
 
   return 0;
 }

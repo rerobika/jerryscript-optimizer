@@ -29,16 +29,18 @@ public:
   auto flags() const { return flags_; }
   void setFlags(uint16_t flags) { flags_ = flags; }
 
-  bool uint16Arguments() {
-    return (flags_ & CBC_CODE_FLAGS_UINT16_ARGUMENTS) != 0;
+  bool isFunction() const { return CBC_IS_FUNCTION(flags()) != 0; }
+
+  bool uint16Arguments() const {
+    return (flags() & CBC_CODE_FLAGS_UINT16_ARGUMENTS) != 0;
   }
 
-  bool fullLiteralEncoding() {
-    return (flags_ & CBC_CODE_FLAGS_FULL_LITERAL_ENCODING) != 0;
+  bool fullLiteralEncoding() const {
+    return (flags() & CBC_CODE_FLAGS_FULL_LITERAL_ENCODING) != 0;
   }
 
-  bool mappedArgumentsNeeded() {
-    return (flags_ & CBC_CODE_FLAGS_MAPPED_ARGUMENTS_NEEDED) != 0;
+  bool mappedArgumentsNeeded() const {
+    return (flags() & CBC_CODE_FLAGS_MAPPED_ARGUMENTS_NEEDED) != 0;
   }
 
 private:
@@ -123,9 +125,14 @@ private:
   uint16_t size_;
 };
 
+class Bytecode;
+using BytecodeRef = std::shared_ptr<Bytecode>;
+using BytecodeRefList = std::vector<BytecodeRef>;
+
 class Bytecode {
 public:
   Bytecode(ecma_value_t function);
+  Bytecode(ecma_compiled_code_t *compiled_code);
   ~Bytecode();
 
   auto compiledCode() const { return compiled_code_; }
@@ -141,6 +148,10 @@ public:
   void setEncoding();
   void setBytecodeEnd();
 
+  static BytecodeRefList readFunctions(ecma_value_t function);
+  static void readSubFunctions(BytecodeRefList &functions,
+                               BytecodeRef byte_code);
+
   uint8_t next() {
     assert(hasNext());
     return *byte_code_++;
@@ -152,7 +163,7 @@ private:
   void decodeHeader();
   void buildInstructions();
 
-  ecma_object_t *function_;
+  ecma_value_t function_;
   ecma_compiled_code_t *compiled_code_;
   uint8_t *byte_code_;
   uint8_t *byte_code_start_;

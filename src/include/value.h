@@ -29,6 +29,7 @@ enum class ValueType {
 };
 
 using ValueRef = std::shared_ptr<Value>;
+using ValueRefList = std::vector<ValueRef>;
 
 class Value {
 public:

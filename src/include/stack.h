@@ -19,11 +19,12 @@ public:
   Stack() : Stack(0, 0) {}
   Stack(uint32_t stack_limit, uint32_t register_size)
       : stack_limit_(stack_limit), register_size_(register_size),
-        block_result_(Value::_undefined()) {
+        block_result_(Value::_undefined()), left_(Value::_undefined()),
+        right_(Value::_undefined()) {
     data_.resize(stack_limit + register_size_);
 
     for (uint32_t i = 0; i < register_size; i++) {
-      data_.push_back(Value::_any());
+      data_.emplace_back(Value::_any());
     }
   }
 
@@ -47,7 +48,7 @@ public:
   void push(ValueRef value);
 
 private:
-  std::vector<ValueRef> data_;
+  ValueRefList data_;
   uint32_t stack_limit_;
   uint32_t register_size_;
   ValueRef block_result_;

@@ -43,7 +43,7 @@ SnapshotReadResult SnapshotReadWriter::read() {
     return {error_str.substr(error_str.find(": ") + 2)};
   }
 
-  return {std::make_shared<Bytecode>(function)};
+  return {std::move(Bytecode::readFunctions(function))};
 }
 
 SnapshotWriteResult SnapshotReadWriter::write(std::string &path) {

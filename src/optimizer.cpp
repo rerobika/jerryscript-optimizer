@@ -13,8 +13,7 @@ extern "C" {
 #include "optimizer.h"
 
 namespace optimizer {
-Optimizer::Optimizer(std::shared_ptr<Bytecode> bytecode)
-    : bytecode_(bytecode) {}
+Optimizer::Optimizer(BytecodeRefList &list) : list_(std::move(list)) {}
 
 Optimizer::~Optimizer() {}
 } // namespace optimizer

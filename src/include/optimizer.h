@@ -17,13 +17,13 @@ namespace optimizer {
 
 class Optimizer {
 public:
-  Optimizer(std::shared_ptr<Bytecode> bytecode);
+  Optimizer(BytecodeRefList &list);
   ~Optimizer();
 
-  auto bytecode() const { return bytecode_; }
+  auto &list() { return list_; }
 
 private:
-  std::shared_ptr<Bytecode> bytecode_;
+  BytecodeRefList list_;
 };
 
 } // namespace optimizer

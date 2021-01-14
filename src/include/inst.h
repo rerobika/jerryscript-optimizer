@@ -82,7 +82,8 @@ public:
   }
 
   void setStackDelta(int32_t delta) {
-    assert(type() == OperandType::STACK || type() == OperandType::STACK_STACK);
+    assert(type() == OperandType::STACK || type() == OperandType::STACK_STACK ||
+           type() == OperandType::STACK_LITERAL);
     stack_delta_ = delta;
   }
 
