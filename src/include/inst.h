@@ -9,8 +9,10 @@
 #ifndef INST_H
 #define INST_H
 
-#include "bytecode.h"
+extern "C" {
 #include "vm.h"
+}
+#include "bytecode.h"
 
 namespace optimizer {
 
@@ -78,7 +80,10 @@ public:
     branch_offset_ = offset;
   }
 
-  void setStackDelta(int32_t delta) { stack_delta_ = delta; }
+  void setStackDelta(int32_t delta) {
+    assert(type() == OperandType::STACK || type() == OperandType::STACK_STACK);
+    stack_delta_ = delta;
+  }
 
   void setFirstLiteral(Literal &literal) {
     assert(isLiteral());
@@ -170,7 +175,7 @@ public:
   auto opcode() const { return opcode_; }
   auto argument() const { return argument_; }
   auto stackSnapshot() const { return stack_snapshot_; }
-  auto& stack() { return byteCode()->stack(); }
+  auto &stack() { return byteCode()->stack(); }
 
   LiteralIndex decodeLiteralIndex();
   Literal decodeLiteral();

@@ -12,15 +12,12 @@
 #include "common.h"
 #include "stack.h"
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 #define this this_value
 #include "ecma-function-object.h"
 #undef this
-#ifdef __cplusplus
 }
-#endif
+
 namespace optimizer {
 
 class BytecodeFlags {
@@ -102,11 +99,11 @@ class LiteralPool {
 public:
   LiteralPool() {}
 
-  auto literal_start() const { return literal_start_; }
+  auto literalStart() const { return literal_start_; }
   auto size() const { return size_; }
 
-  uint8_t *setLiteralPool(void *literal_start, BytecodeArguments &args) {
-    literal_start_ = reinterpret_cast<ecma_value_t *>(literal_start);
+  uint8_t *setLiteralPool(void *literalStart, BytecodeArguments &args) {
+    literal_start_ = reinterpret_cast<ecma_value_t *>(literalStart);
     size_ = args.literalEnd();
 
     return reinterpret_cast<uint8_t *>(literal_start_ + size_);

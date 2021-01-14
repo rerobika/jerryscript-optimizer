@@ -10,7 +10,9 @@
 #define VALUE_H
 
 #include "common.h"
+extern "C" {
 #include "ecma-helpers.h"
+}
 
 namespace optimizer {
 

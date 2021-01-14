@@ -6,8 +6,9 @@
  * according to those terms.
  */
 
-#include "jerryscript-compiler.h"
+extern "C" {
 #include "jerryscript.h"
+}
 
 #include "optimizer.h"
 

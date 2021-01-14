@@ -7,7 +7,9 @@
  */
 
 #include "snapshot-readwriter.h"
+extern "C" {
 #include "jerryscript.h"
+}
 
 namespace optimizer {
 
