@@ -9,6 +9,11 @@
 #include "bytecode.h"
 #include "inst.h"
 
+extern "C" {
+#include "jerry-snapshot.h"
+#include "jerryscript.h"
+}
+
 namespace optimizer {
 
 Bytecode::Bytecode(ecma_value_t function) {
@@ -45,6 +50,20 @@ void Bytecode::readSubFunctions(BytecodeRefList &list, BytecodeRef byte_code) {
       readSubFunctions(list, list.back());
     }
   }
+}
+
+size_t Bytecode::countFunctions(std::string snapshot) {
+  const uint8_t *snapshot_data = (uint8_t *)snapshot.c_str();
+  size_t snapshot_size = snapshot.size();
+
+  if (snapshot_size <= sizeof(jerry_snapshot_header_t)) {
+    return SIZE_MAX;
+  }
+
+  auto header_p =
+      reinterpret_cast<const jerry_snapshot_header_t *>(snapshot_data);
+
+  return header_p->number_of_funcs;
 }
 
 BytecodeRefList Bytecode::readFunctions(ecma_value_t function) {

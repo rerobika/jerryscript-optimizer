@@ -21,29 +21,37 @@ SnapshotReadWriter::SnapshotReadWriter(std::string &snapshot)
 SnapshotReadWriter::~SnapshotReadWriter() { jerry_cleanup(); }
 
 SnapshotReadResult SnapshotReadWriter::read() {
-  jerry_value_t function = jerry_load_function_snapshot(
-      reinterpret_cast<const uint32_t *>(snapshot_.c_str()), snapshot_.size(),
-      0, JERRY_SNAPSHOT_EXEC_COPY_DATA);
+  size_t number_of_funcs = Bytecode::countFunctions(snapshot());
+  BytecodeRefList function_table;
 
-  if (jerry_value_is_error(function)) {
-    jerry_value_t error = jerry_get_value_from_error(function, true);
-    jerry_value_t to_string = jerry_value_to_string(error);
-    jerry_release_value(error);
+  for (size_t i = 0; i < number_of_funcs; i++) {
+    jerry_value_t function = jerry_load_function_snapshot(
+        reinterpret_cast<const uint32_t *>(snapshot().c_str()),
+        snapshot().size(), 0, JERRY_SNAPSHOT_EXEC_COPY_DATA);
 
-    size_t str_size = jerry_get_string_size(to_string);
-    uint8_t *buff = new uint8_t[str_size + 1];
+    if (jerry_value_is_error(function)) {
+      jerry_value_t error = jerry_get_value_from_error(function, true);
+      jerry_value_t to_string = jerry_value_to_string(error);
+      jerry_release_value(error);
 
-    jerry_string_to_char_buffer(to_string, buff, str_size);
-    buff[str_size] = 0;
+      size_t str_size = jerry_get_string_size(to_string);
+      uint8_t *buff = new uint8_t[str_size + 1];
 
-    std::string error_str(reinterpret_cast<const char *>(buff), str_size);
+      jerry_string_to_char_buffer(to_string, buff, str_size);
+      buff[str_size] = 0;
 
-    delete[] buff;
-    jerry_release_value(to_string);
-    return {error_str.substr(error_str.find(": ") + 2)};
+      std::string error_str(reinterpret_cast<const char *>(buff), str_size);
+
+      delete[] buff;
+      jerry_release_value(to_string);
+      return {error_str.substr(error_str.find(": ") + 2)};
+    }
+
+    auto function_list = Bytecode::readFunctions(function);
+    function_table.insert(function_table.end(), function_list.begin(), function_list.end());
   }
 
-  return {std::move(Bytecode::readFunctions(function))};
+  return {std::move(function_table)};
 }
 
 SnapshotWriteResult SnapshotReadWriter::write(std::string &path) {

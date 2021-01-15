@@ -148,6 +148,7 @@ public:
   void setEncoding();
   void setBytecodeEnd();
 
+  static size_t countFunctions(std::string snapshot);
   static BytecodeRefList readFunctions(ecma_value_t function);
   static void readSubFunctions(BytecodeRefList &functions,
                                BytecodeRef byte_code);

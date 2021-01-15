@@ -22,6 +22,7 @@ target_include_directories (optimizer-core
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/
+  PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/api
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/include
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/jrt
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/lit
