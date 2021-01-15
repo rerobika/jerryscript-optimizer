@@ -45,7 +45,13 @@ enum class OperandFlags {
   BACKWARD_BRANCH = VM_OC_BACKWARD_BRANCH,
 };
 
-enum class ResultType { IDENT, REFERENCE, STACK, BLOCK, RESULT_TYPE__COUNT };
+enum class ResultType {
+  IDENT = (1 << 0),
+  REFERENCE = (1 << 1),
+  STACK = (1 << 2),
+  BLOCK = (1 << 3),
+  RESULT_TYPE__COUNT
+};
 
 using CBCOpcode = uint16_t;
 using GroupOpcode = vm_oc_types;
@@ -123,9 +129,14 @@ public:
     return static_cast<GroupOpcode>((data() & VM_OC_GROUP_MASK));
   }
 
-  ResultType result() const {
-    return static_cast<ResultType>((data() >> VM_OC_PUT_RESULT_SHIFT) &
-                                   VM_OC_PUT_RESULT_MASK);
+  ResultType result() const { return static_cast<ResultType>(putResult()); }
+
+  bool isPutStack() {
+    return (putResult() & static_cast<uint32_t>(ResultType::STACK)) != 0;
+  }
+
+  bool isPutBlock() {
+    return (putResult() & static_cast<uint32_t>(ResultType::BLOCK)) != 0;
   }
 
   bool isBackwardBrach() const {
@@ -135,6 +146,10 @@ public:
   bool isForwardBrach() const { return !isBackwardBrach(); }
 
 private:
+  uint32_t putResult() const {
+    return (data() >> VM_OC_PUT_RESULT_SHIFT) & VM_OC_PUT_RESULT_MASK;
+  }
+
   uint32_t data_;
 };
 
@@ -142,12 +157,14 @@ class Opcode {
 public:
   Opcode() : Opcode(0) {}
   Opcode(CBCOpcode opcode)
-      : opcode_(opcode), opcode_data_(decode_table[opcode]) {}
+      : cbc_opcode_(opcode), opcode_data_(decode_table[opcode]) {}
 
-  auto opcode() const { return opcode_; }
+  auto CBCopcode() const { return cbc_opcode_; }
   auto opcodeData() const { return opcode_data_; }
 
-  bool isExtOpcode() const { return Opcode::isExtOpcode(opcode()); }
+  bool is(CBCOpcode opcode) { return cbc_opcode_ == opcode; }
+
+  bool isExtOpcode() const { return Opcode::isExtOpcode(CBCopcode()); }
 
   static bool isExtOpcode(CBCOpcode opcode) { return opcode > CBC_END; }
   static bool isEndOpcode(CBCOpcode opcode) { return opcode == CBC_EXT_NOP; }
@@ -156,40 +173,73 @@ public:
   }
 
   void toExtOpcode(CBCOpcode cbc_op) {
-    assert(Opcode::isExtStartOpcode(opcode()));
+    assert(Opcode::isExtStartOpcode(CBCopcode()));
     assert(!Opcode::isEndOpcode(cbc_op));
     opcode_data_ = decode_table[cbc_op + CBC_END + 1];
-    opcode_ = cbc_op + 256;
+    cbc_opcode_ = cbc_op + 256;
   }
 
 private:
-  CBCOpcode opcode_;
+  CBCOpcode cbc_opcode_;
   OpcodeData opcode_data_;
 };
 
 class Inst {
 public:
-  Inst(Bytecode *byte_code) : byte_code_(byte_code), stack_snapshot_(nullptr) {}
+  Inst(Bytecode *byte_code)
+      : byte_code_(byte_code), stack_snapshot_(nullptr),
+        string_literal_(Value::_undefined()),
+        literal_value_(Value::_undefined()) {}
 
   ~Inst() { delete stack_snapshot_; }
 
   auto byteCode() const { return byte_code_; }
-  auto opcode() const { return opcode_; }
+  auto opcode() const { return cbc_opcode_; }
   auto argument() const { return argument_; }
   auto stackSnapshot() const { return stack_snapshot_; }
   auto &stack() { return byteCode()->stack(); }
 
+  void setStringLiteral() {
+    Literal literal = decodeStringLiteral();
+    setStringLiteral(literal);
+  }
+
+  void setStringLiteral(Literal &string_literal) {
+    string_literal_ = string_literal.toValueRef(byteCode());
+  }
+
+  void setStringLiteral(ValueRef literal_value) {
+    string_literal_ = literal_value;
+  }
+
+  void setLiteralValue(ValueRef literal_value) {
+    literal_value_ = literal_value;
+  }
+
+  void setLiteralValue(Literal &literal_value) {
+    setLiteralValue(literal_value.toValueRef(byteCode()));
+  }
+
+  void setPayload(uint32_t payload) { payload_ = payload; }
+
   LiteralIndex decodeLiteralIndex();
+  Literal decodeTemplateLiteral();
+  Literal decodeStringLiteral();
   Literal decodeLiteral();
+  Literal decodeLiteral(LiteralIndex index);
   void decodeArguments();
   bool decodeCBCOpcode();
+  void processPut();
   void decodeGroupOpcode();
 
 private:
   Bytecode *byte_code_;
   Stack *stack_snapshot_;
-  Opcode opcode_;
+  Opcode cbc_opcode_;
   Argument argument_;
+  ValueRef string_literal_;
+  ValueRef literal_value_;
+  uint32_t payload_;
 };
 
 } // namespace optimizer

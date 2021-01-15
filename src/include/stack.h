@@ -19,8 +19,8 @@ public:
   Stack() : Stack(0, 0) {}
   Stack(uint32_t stack_limit, uint32_t register_size)
       : stack_limit_(stack_limit), register_size_(register_size),
-        block_result_(Value::_undefined()), left_(Value::_undefined()),
-        right_(Value::_undefined()) {
+        block_result_(Value::_undefined()), result_(Value::_undefined()),
+        left_(Value::_undefined()), right_(Value::_undefined()) {
     data_.resize(stack_limit + register_size_);
 
     for (uint32_t i = 0; i < register_size; i++) {
@@ -31,20 +31,29 @@ public:
   auto data() const { return data_; }
   auto size() const { return data().size(); }
   auto registerSize() const { return register_size_; }
+  auto stackLimit() const { return stack_limit_; }
   auto fullSize() const { return stack_limit_; }
   auto left() const { return left_; }
   auto right() const { return right_; }
+  auto result() const { return result_; }
 
   void setLeft(ValueRef value) { left_ = value; }
   void setRight(ValueRef value) { right_ = value; }
   void setBlockResult(ValueRef value) { block_result_ = value; }
+  void setResult(ValueRef value) { block_result_ = value; }
+  void setRegister(size_t i, ValueRef value);
+  void setStack(int32_t offset, ValueRef value);
 
   void resetOperands();
+  void shift(size_t from, size_t offset);
 
   ValueRef &getRegister(int i) { return data_[i]; }
   ValueRef &getStack(int i) { return data_[registerSize() + i]; }
+  ValueRef &getStack() { return data_[registerSize() + size()]; }
 
   ValueRef pop();
+  void pop(size_t count);
+  void push();
   void push(ValueRef value);
 
 private:
@@ -52,6 +61,7 @@ private:
   uint32_t stack_limit_;
   uint32_t register_size_;
   ValueRef block_result_;
+  ValueRef result_;
   ValueRef left_;
   ValueRef right_;
 };

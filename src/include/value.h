@@ -26,6 +26,7 @@ enum class ValueType {
   STRING,
   BOOLEAN,
   PRIMITIVE,
+  INTERNAL,
 };
 
 using ValueRef = std::shared_ptr<Value>;
@@ -50,6 +51,10 @@ public:
     return std::make_shared<Value>(0, ValueType::OBJECT);
   }
 
+  static ValueRef _internal() {
+    return std::make_shared<Value>(0, ValueType::INTERNAL);
+  }
+
   static ValueRef _undefined() {
     return std::make_shared<Value>(ECMA_VALUE_UNDEFINED, ValueType::PRIMITIVE);
   }
@@ -64,6 +69,11 @@ public:
 
   static ValueRef _false() {
     return std::make_shared<Value>(ECMA_VALUE_FALSE, ValueType::PRIMITIVE);
+  }
+
+  static ValueRef _number(double num) {
+    return std::make_shared<Value>(ecma_make_number_value(num),
+                                   ValueType::NUMBER);
   }
 
 private:
