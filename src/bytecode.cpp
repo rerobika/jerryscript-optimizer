@@ -122,6 +122,10 @@ void Bytecode::decodeHeader() {
 void Bytecode::buildInstructions() {
   decodeHeader();
 
+#if DUMP_INST
+  std::cout << "--------- function start --------" << std::endl;
+#endif
+
   while (hasNext()) {
     Inst inst(this);
 
@@ -131,6 +135,10 @@ void Bytecode::buildInstructions() {
     inst.decodeArguments();
     inst.decodeGroupOpcode();
   }
+
+#if DUMP_INST
+  std::cout << "--------- function end --------" << std::endl;
+#endif
 }
 
 Bytecode::~Bytecode() { ecma_free_value(function_); };

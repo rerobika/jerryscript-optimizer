@@ -42,6 +42,10 @@ ValueRef Literal::toValueRef(Bytecode *byte_code) {
 uint16_t decode_table[] = {CBC_OPCODE_LIST CBC_EXT_OPCODE_LIST};
 #undef CBC_OPCODE
 
+#define CBC_OPCODE(arg1, arg2, arg3, arg4) #arg1,
+const char *cbc_names[] = {CBC_OPCODE_LIST CBC_EXT_OPCODE_LIST};
+#undef CBC_OPCODE
+
 LiteralIndex Inst::decodeLiteralIndex() {
   LiteralIndex literal_index = byteCode()->next();
 
@@ -197,9 +201,51 @@ bool Inst::decodeCBCOpcode() {
   }
 
   cbc_opcode_ = opcode;
+
+#if DUMP_INST
+  std::cout << cbc_names[cbc_opcode_.isExtOpcode()
+                             ? cbc_opcode_.CBCopcode() - 256 + CBC_END + 1
+                             : cbc_opcode_.CBCopcode()]
+            << std::endl;
+#endif
+
   return true;
 }
-void Inst::processPut() {}
+
+void Inst::processPut() {
+  if (opcode().opcodeData().isPutIdent()) {
+    LiteralIndex literal_index = decodeLiteralIndex();
+
+    if (literal_index < byteCode()->args().registerEnd()) {
+      stack().setRegister(literal_index, stack().result());
+    } else {
+      Literal literal = decodeLiteral(literal_index);
+      setStringLiteral(literal);
+      setLiteralValue(stack().result());
+    }
+  } else if (opcode().opcodeData().isPutReference()) {
+    ValueRef property = stack().pop();
+    ValueRef base = stack().pop();
+
+    if (base->type() == ValueType::INTERNAL) {
+      uint32_t literal_index = ecma_get_integer_from_value(base->value());
+      stack().setRegister(literal_index, stack().result());
+    } else {
+      stack().setResult(Value::_any());
+    }
+
+    if (!opcode().opcodeData().isPutStack() &&
+        !opcode().opcodeData().isPutBlock()) {
+      return;
+    }
+  }
+
+  if (OpcodeData().isPutStack()) {
+    stack().push(Value::_any());
+  } else if (OpcodeData().isPutBlock()) {
+    stack().setBlockResult(Value::_any());
+  }
+}
 
 void Inst::decodeGroupOpcode() {
   auto groupOpcode = opcode().opcodeData().groupOpcode();
@@ -290,6 +336,7 @@ void Inst::decodeGroupOpcode() {
     setStringLiteral();
     break;
   }
+#if ENABLED(JERRY_ESNEXT)
   case VM_OC_VAR_EVAL: {
     if (opcode().is(CBC_CREATE_VAR_FUNC_EVAL)) {
       Literal literal = decodeTemplateLiteral();
@@ -308,6 +355,7 @@ void Inst::decodeGroupOpcode() {
     setStringLiteral();
     break;
   }
+#endif /* ENABLED (JERRY_ESNEXT) */
   case VM_OC_CREATE_ARGUMENTS: {
     LiteralIndex literal_index = decodeLiteralIndex();
 
@@ -319,9 +367,11 @@ void Inst::decodeGroupOpcode() {
     setStringLiteral();
     break;
   }
+#if ENABLED(JERRY_SNAPSHOT_EXEC)
   case VM_OC_SET_BYTECODE_PTR: {
     break;
   }
+#endif /* ENABLED (JERRY_SNAPSHOT_EXEC) */
   case VM_OC_INIT_ARG_OR_FUNC: {
     LiteralIndex literal_index = decodeLiteralIndex();
     LiteralIndex value_index = decodeLiteralIndex();
@@ -342,6 +392,7 @@ void Inst::decodeGroupOpcode() {
     setLiteralValue(lit_value);
     break;
   }
+#if ENABLED(JERRY_ESNEXT)
   case VM_OC_CHECK_VAR: {
     setStringLiteral();
     break;
@@ -411,6 +462,7 @@ void Inst::decodeGroupOpcode() {
     stack().setLeft(tmp);
     /* FALLTHRU */
   }
+#endif /* ENABLED (JERRY_ESNEXT) */
   case VM_OC_SET_PROPERTY: {
     setStringLiteral(stack().left());
     setLiteralValue(stack().right());
@@ -420,6 +472,7 @@ void Inst::decodeGroupOpcode() {
     stack().push(Value::_object());
     break;
   }
+#if ENABLED(JERRY_ESNEXT)
   case VM_OC_LOCAL_EVAL: {
     setPayload(byteCode()->next());
     break;
@@ -614,18 +667,426 @@ void Inst::decodeGroupOpcode() {
     stack().setResult(Value::_undefined());
     break;
   }
+  case VM_OC_GENERATOR_AWAIT: {
+    stack().setResult(Value::_undefined());
+    break;
+  }
   case VM_OC_EXT_RETURN: {
-    // TODO
+    // TODO: full support
     stack().setResult(stack().left());
     break;
   }
-  case VM_OC_NONE: {
+  case VM_OC_ASYNC_EXIT: {
+    // TODO: full support
+    stack().setBlockResult(Value::_undefined());
+    stack().setResult(Value::_object());
     break;
   }
+  case VM_OC_STRING_CONCAT: {
+    setStringLiteral(stack().left());
+    setLiteralValue(stack().right());
+    stack().push(Value::_string());
+    break;
+  }
+  case VM_OC_GET_TEMPLATE_OBJECT: {
+    stack().push(Value::_object());
+    break;
+  }
+  case VM_OC_PUSH_NEW_TARGET: {
+    stack().push(Value::_any());
+    break;
+  }
+  case VM_OC_REQUIRE_OBJECT_COERCIBLE: {
+    setLiteralValue(stack().getStack(-1));
+    break;
+  }
+  case VM_OC_ASSIGN_SUPER: {
+    // TODO: full support
+    break;
+  }
+#endif /* ENABLED (JERRY_ESNEXT) */
+  case VM_OC_PUSH_ELISON: {
+    stack().push(Value::_internal());
+    break;
+  }
+  case VM_OC_APPEND_ARRAY: {
+    auto values_length = byteCode()->next();
+    stack().pop(values_length);
+    break;
+  }
+  case VM_OC_IDENT_REFERENCE: {
+    LiteralIndex literal_index = decodeLiteralIndex();
+
+    if (literal_index < byteCode()->args().registerEnd()) {
+      stack().push(Value::_internal());
+      stack().push(Value::_number(literal_index));
+      stack().push(stack().getRegister(literal_index));
+    } else {
+      stack().push(Value::_object());
+      stack().push(Value::_string());
+      stack().push(Value::_any());
+    }
+    break;
+  }
+  case VM_OC_PROP_GET: {
+    stack().push(Value::_any());
+    break;
+  }
+  case VM_OC_PROP_REFERENCE: {
+    if (opcode().is(CBC_PUSH_PROP_REFERENCE)) {
+      stack().setLeft(stack().getStack(-2));
+      stack().setRight(stack().getStack(-1));
+    } else if (opcode().is(CBC_PUSH_PROP_LITERAL_REFERENCE)) {
+      stack().push(stack().left());
+      stack().setRight(stack().left());
+      stack().setLeft(stack().getStack(-2));
+    } else {
+      stack().push(stack().left());
+      stack().push(stack().right());
+    }
+    /* FALLTHRU */
+  }
+  case VM_OC_PROP_PRE_INCR:
+  case VM_OC_PROP_PRE_DECR:
+  case VM_OC_PROP_POST_INCR:
+  case VM_OC_PROP_POST_DECR: {
+    stack().setResult(Value::_any());
+    if (opcode().CBCopcode() < CBC_PRE_INCR) {
+      stack().setRight(Value::_undefined());
+      processPut();
+      break;
+    }
+    stack().push(2);
+    stack().setLeft(stack().result());
+    stack().setRight(Value::_undefined());
+    /* FALLTHRU */
+  }
+  case VM_OC_PRE_INCR:
+  case VM_OC_PRE_DECR:
+  case VM_OC_POST_INCR:
+  case VM_OC_POST_DECR: {
+    uint32_t opcode_flags = groupOpcode - VM_OC_PROP_PRE_INCR;
+
+    if (opcode_flags & VM_OC_POST_INCR_DECR_OPERATOR_FLAG) {
+      if (OpcodeData().isPutStack()) {
+        if (opcode_flags & VM_OC_IDENT_INCR_DECR_OPERATOR_FLAG) {
+          stack().push(stack().result());
+        }
+      } else {
+        stack().push();
+        stack().setStack(-1, stack().getStack(-2));
+        stack().setStack(-2, stack().getStack(-3));
+        stack().setStack(-3, stack().result());
+      }
+      OpcodeData().removeFlag(ResultFlag::STACK);
+    } else {
+      stack().setBlockResult(stack().result());
+      OpcodeData().removeFlag(ResultFlag::BLOCK);
+    }
+
+    stack().setResult(Value::_any());
+    processPut();
+    break;
+  }
+  case VM_OC_ASSIGN: {
+    stack().setResult(stack().left());
+    stack().setLeft(Value::_undefined());
+    processPut();
+    break;
+  }
+  case VM_OC_MOV_IDENT: {
+    LiteralIndex literal_index = decodeLiteralIndex();
+    stack().setRegister(literal_index, stack().left());
+    break;
+  }
+  case VM_OC_ASSIGN_PROP: {
+    stack().setResult(stack().getStack(-1));
+    stack().setStack(-1, stack().left());
+    stack().setLeft(Value::_undefined());
+    processPut();
+    break;
+  }
+  case VM_OC_ASSIGN_PROP_THIS: {
+    stack().setResult(stack().getStack(-1));
+    stack().setStack(-1, Value::_any());
+    stack().push(stack().left());
+    stack().setLeft(Value::_undefined());
+    processPut();
+    break;
+  }
+  case VM_OC_RETURN: {
+    if (opcode().is(CBC_RETURN_WITH_BLOCK)) {
+      stack().setLeft(stack().blockResult());
+      stack().setBlockResult(Value::_undefined());
+    }
+
+    stack().setResult(stack().left());
+    stack().setLeft(Value::_undefined());
+    break;
+  }
+  case VM_OC_THROW: {
+    setLiteralValue(stack().left());
+    stack().setResult(Value::_internal());
+    stack().setLeft(Value::_undefined());
+    break;
+  }
+  case VM_OC_THROW_REFERENCE_ERROR: {
+    stack().setResult(Value::_internal());
+    break;
+  }
+  case VM_OC_EVAL: {
+    break;
+  }
+  case VM_OC_CALL: {
+    uint32_t argc;
+    if (opcode().CBCopcode() >= CBC_CALL0) {
+      argc = (uint32_t)((opcode().CBCopcode() - CBC_CALL0) / 6);
+    } else {
+      argc = byteCode()->next();
+    }
+
+    if (((opcode().CBCopcode() - CBC_CALL) % 6) >= 3) {
+      stack().pop(2); // this, prop_name
+    }
+
+    stack().pop(argc);
+    stack().pop(1); // function object
+    if (OpcodeData().isPutStack()) {
+      stack().push(Value::_any());
+    } else if (OpcodeData().isPutBlock()) {
+      stack().setBlockResult(Value::_any());
+    }
+    break;
+  }
+  case VM_OC_NEW: {
+    uint32_t argc;
+    if (opcode().CBCopcode() >= CBC_NEW0) {
+      argc = (uint32_t)((opcode().CBCopcode() - CBC_NEW0));
+    } else {
+      argc = byteCode()->next();
+    }
+
+    stack().pop(argc);
+    stack().pop(1); // function object
+    if (OpcodeData().isPutStack()) {
+      stack().push(Value::_any());
+    } else if (OpcodeData().isPutBlock()) {
+      stack().setBlockResult(Value::_any());
+    }
+    break;
+  }
+  case VM_OC_ERROR: {
+    stack().setResult(Value::_internal());
+    break;
+  }
+  case VM_OC_RESOLVE_BASE_FOR_CALL: {
+    break;
+  }
+  case VM_OC_PROP_DELETE: {
+    setStringLiteral(stack().left());
+    setLiteralValue(stack().right());
+    stack().push(Value::_boolean());
+    break;
+  }
+  case VM_OC_DELETE: {
+    LiteralIndex literal_index = decodeLiteralIndex();
+
+    if (literal_index < byteCode()->args().registerEnd()) {
+      stack().push(Value::_false());
+    } else {
+      stack().push(Value::_boolean());
+    }
+    break;
+  }
+  case VM_OC_JUMP: {
+    break;
+  }
+  case VM_OC_BRANCH_IF_STRICT_EQUAL: {
+    setLiteralValue(stack().pop());
+    break;
+  }
+  case VM_OC_BRANCH_IF_TRUE:
+  case VM_OC_BRANCH_IF_FALSE:
+  case VM_OC_BRANCH_IF_LOGICAL_TRUE:
+  case VM_OC_BRANCH_IF_LOGICAL_FALSE: {
+    setLiteralValue(stack().pop());
+    break;
+  }
+#if ENABLED(JERRY_ESNEXT)
+  case VM_OC_BRANCH_IF_NULLISH: {
+    setLiteralValue(stack().getStack(-1));
+    break;
+  }
+#endif /* ENABLED (JERRY_ESNEXT) */
+  case VM_OC_PLUS:
+  case VM_OC_MINUS: {
+    stack().push(Value::_number());
+    break;
+  }
+  case VM_OC_NOT: {
+    stack().push(Value::_boolean());
+    break;
+  }
+  case VM_OC_BIT_NOT: {
+    stack().push(Value::_number());
+    break;
+  }
+  case VM_OC_VOID: {
+    stack().push(Value::_undefined());
+    break;
+  }
+  case VM_OC_TYPEOF_IDENT: {
+    LiteralIndex literal_index = decodeLiteralIndex();
+
+    if (literal_index < byteCode()->args().registerEnd()) {
+      stack().setLeft(stack().getRegister(literal_index));
+    } else {
+      stack().setLeft(Value::_any());
+    }
+    /* FALLTHRU */
+  }
+  case VM_OC_TYPEOF: {
+    setLiteralValue(stack().left());
+    stack().push(Value::_string());
+    break;
+  }
+  case VM_OC_ADD: {
+    setStringLiteral(stack().left());
+    setLiteralValue(stack().right());
+    stack().push(Value::_any());
+    break;
+  }
+  case VM_OC_SUB:
+  case VM_OC_MUL:
+  case VM_OC_DIV:
+#if ENABLED(JERRY_ESNEXT)
+  case VM_OC_EXP:
+#endif /* ENABLED (JERRY_ESNEXT) */
+  case VM_OC_MOD: {
+    setStringLiteral(stack().left());
+    setLiteralValue(stack().right());
+    stack().push(Value::_number());
+    break;
+  }
+  case VM_OC_EQUAL:
+  case VM_OC_NOT_EQUAL:
+  case VM_OC_STRICT_EQUAL:
+  case VM_OC_STRICT_NOT_EQUAL: {
+    setStringLiteral(stack().left());
+    setLiteralValue(stack().right());
+    stack().push(Value::_boolean());
+  }
+  case VM_OC_BIT_OR:
+  case VM_OC_BIT_XOR:
+  case VM_OC_BIT_AND:
+  case VM_OC_LEFT_SHIFT:
+  case VM_OC_RIGHT_SHIFT:
+  case VM_OC_UNS_RIGHT_SHIFT: {
+    setStringLiteral(stack().left());
+    setLiteralValue(stack().right());
+    stack().push(Value::_number());
+    break;
+  }
+  case VM_OC_LESS:
+  case VM_OC_GREATER:
+  case VM_OC_LESS_EQUAL:
+  case VM_OC_GREATER_EQUAL:
+  case VM_OC_IN:
+  case VM_OC_INSTANCEOF: {
+    setStringLiteral(stack().left());
+    setLiteralValue(stack().right());
+    stack().push(Value::_boolean());
+  }
+  case VM_OC_BLOCK_CREATE_CONTEXT: {
+#if ENABLED(JERRY_ESNEXT)
+    stack().push(PARSER_BLOCK_CONTEXT_STACK_ALLOCATION);
+#endif /* ENABLED (JERRY_ESNEXT) */
+    break;
+  }
+  case VM_OC_WITH: {
+    setLiteralValue(stack().pop());
+    stack().push(PARSER_BLOCK_CONTEXT_STACK_ALLOCATION);
+    break;
+  }
+  case VM_OC_FOR_IN_INIT: {
+    setLiteralValue(stack().pop());
+    stack().push(PARSER_FOR_IN_CONTEXT_STACK_ALLOCATION);
+    break;
+  }
+  case VM_OC_FOR_IN_GET_NEXT: {
+    stack().push(Value::_any());
+    break;
+  }
+  case VM_OC_FOR_IN_HAS_NEXT: {
+    break;
+  }
+#if ENABLED(JERRY_ESNEXT)
+  case VM_OC_FOR_OF_INIT: {
+    setLiteralValue(stack().pop());
+    stack().push(PARSER_FOR_OF_CONTEXT_STACK_ALLOCATION);
+    break;
+  }
+  case VM_OC_FOR_OF_GET_NEXT: {
+    stack().push(Value::_any());
+    break;
+  }
+  case VM_OC_FOR_OF_HAS_NEXT: {
+    break;
+  }
+  case VM_OC_FOR_AWAIT_OF_INIT: {
+    setLiteralValue(stack().pop());
+    stack().push(PARSER_FOR_AWAIT_OF_CONTEXT_STACK_ALLOCATION);
+    break;
+  }
+  case VM_OC_FOR_AWAIT_OF_HAS_NEXT: {
+    stack().push(PARSER_TRY_CONTEXT_STACK_ALLOCATION);
+    break;
+  }
+#endif /* ENABLED (JERRY_ESNEXT) */
+  case VM_OC_TRY: {
+    break;
+  }
+  case VM_OC_CATCH: {
+    break;
+  }
+  case VM_OC_FINALLY: {
+    stack().push(PARSER_FINALLY_CONTEXT_EXTRA_STACK_ALLOCATION);
+    break;
+  }
+  case VM_OC_CONTEXT_END: {
+    // TODO: support
+    break;
+  }
+  case VM_OC_JUMP_AND_EXIT_CONTEXT: {
+    // TODO: support
+    break;
+  }
+#if ENABLED(JERRY_DEBUGGER)
+  case VM_OC_BREAKPOINT_ENABLED: {
+    break;
+  }
+  case VM_OC_BREAKPOINT_DISABLED: {
+    break;
+  }
+#endif /* ENABLED (JERRY_DEBUGGER) */
+#if ENABLED(JERRY_LINE_INFO)
+  case VM_OC_LINE: {
+    uint32_t value = 0;
+    uint8_t byte;
+
+    do {
+      byte = byteCode()->next();
+      value = (value << 7) | (byte & CBC_LOWER_SEVEN_BIT_MASK);
+    } while (byte & CBC_HIGHEST_BIT_MASK);
+
+    break;
+  }
+#endif /* ENABLED (JERRY_LINE_INFO) */
+  case VM_OC_NONE:
   default: {
     break;
   }
   }
-}
+} // namespace optimizer
 
 } // namespace optimizer

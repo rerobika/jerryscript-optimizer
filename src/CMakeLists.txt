@@ -18,9 +18,11 @@ set(SRC
 add_library(optimizer-core STATIC ${SRC})
 add_dependencies(optimizer-core jerry-core)
 
+message(${CMAKE_BINARY_DIR})
 target_include_directories (optimizer-core
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PUBLIC ${CMAKE_BINARY_DIR}/deps/jerryscript/amalgam/
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/api
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/include
@@ -32,6 +34,7 @@ target_include_directories (optimizer-core
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/ecma/builtin-objects
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/vm
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/parser/js
+  PUBLIC ${JERRYSCRIPT_DIR}/jerry-port/default/include
 )
 target_link_libraries (optimizer-core
   PRIVATE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libjerry-core${CMAKE_STATIC_LIBRARY_SUFFIX}

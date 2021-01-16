@@ -12,21 +12,26 @@ namespace optimizer {
 
 ValueRef Stack::pop() {
   assert(size() > registerSize());
-  ValueRef value = data().back();
-  data().pop_back();
+  ValueRef value = data_.back();
+  data_.pop_back();
   return value;
 }
 
 void Stack::pop(size_t count) {
   assert(size() - count > registerSize());
-  data().resize(data().size() - count);
+  data_.resize(data_.size() - count);
 }
 
+void Stack::push(size_t count) {
+  for (size_t i = 0; i < count; i++) {
+    push();
+  }
+};
 void Stack::push() { push(Value::_undefined()); };
 
 void Stack::push(ValueRef value) {
-  assert(size() + 1 < fullSize());
-  data().push_back(value);
+  assert(size() < fullSize());
+  data_.push_back(value);
 }
 
 void Stack::resetOperands() {

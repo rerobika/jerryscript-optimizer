@@ -64,16 +64,28 @@ public:
   }
 
   static ValueRef _true() {
-    return std::make_shared<Value>(ECMA_VALUE_TRUE, ValueType::PRIMITIVE);
+    return std::make_shared<Value>(ECMA_VALUE_TRUE, ValueType::BOOLEAN);
   }
 
   static ValueRef _false() {
-    return std::make_shared<Value>(ECMA_VALUE_FALSE, ValueType::PRIMITIVE);
+    return std::make_shared<Value>(ECMA_VALUE_FALSE, ValueType::BOOLEAN);
+  }
+
+  static ValueRef _boolean() {
+    return std::make_shared<Value>(0, ValueType::BOOLEAN);
+  }
+
+  static ValueRef _number() {
+    return std::make_shared<Value>(0, ValueType::NUMBER);
   }
 
   static ValueRef _number(double num) {
     return std::make_shared<Value>(ecma_make_number_value(num),
                                    ValueType::NUMBER);
+  }
+
+  static ValueRef _string() {
+    return std::make_shared<Value>(0, ValueType::STRING);
   }
 
 private:

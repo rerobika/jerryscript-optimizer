@@ -8,6 +8,7 @@
 
 #include "snapshot-readwriter.h"
 extern "C" {
+#include "jerryscript-port-default.h"
 #include "jerryscript.h"
 }
 
@@ -16,6 +17,7 @@ namespace optimizer {
 SnapshotReadWriter::SnapshotReadWriter(std::string &snapshot)
     : snapshot_(snapshot) {
   jerry_init(JERRY_INIT_SHOW_OPCODES);
+  jerry_port_default_set_log_level(JERRY_LOG_LEVEL_DEBUG);
 }
 
 SnapshotReadWriter::~SnapshotReadWriter() { jerry_cleanup(); }
@@ -48,7 +50,8 @@ SnapshotReadResult SnapshotReadWriter::read() {
     }
 
     auto function_list = Bytecode::readFunctions(function);
-    function_table.insert(function_table.end(), function_list.begin(), function_list.end());
+    function_table.insert(function_table.end(), function_list.begin(),
+                          function_list.end());
   }
 
   return {std::move(function_table)};

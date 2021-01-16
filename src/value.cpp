@@ -41,7 +41,7 @@ Value::Value(ecma_value_t number, ValueType type)
     : value_(number), type_(type) {}
 
 Value::~Value() {
-  if (type() != ValueType::OBJECT && type() != ValueType::ANY) {
+  if (type() == ValueType::NUMBER) {
     ecma_free_value(value());
   }
 }

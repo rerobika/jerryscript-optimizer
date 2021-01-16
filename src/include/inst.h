@@ -9,7 +9,12 @@
 #ifndef INST_H
 #define INST_H
 
+#ifndef DUMP_INST
+#define DUMP_INST 1
+#endif
+
 extern "C" {
+#include "jerryscript-config.h"
 #include "vm.h"
 }
 #include "bytecode.h"
@@ -17,6 +22,7 @@ extern "C" {
 namespace optimizer {
 
 extern uint16_t decode_table[];
+extern const char *cbc_names[];
 
 class Bytecode;
 
@@ -45,7 +51,7 @@ enum class OperandFlags {
   BACKWARD_BRANCH = VM_OC_BACKWARD_BRANCH,
 };
 
-enum class ResultType {
+enum class ResultFlag {
   IDENT = (1 << 0),
   REFERENCE = (1 << 1),
   STACK = (1 << 2),
@@ -129,14 +135,22 @@ public:
     return static_cast<GroupOpcode>((data() & VM_OC_GROUP_MASK));
   }
 
-  ResultType result() const { return static_cast<ResultType>(putResult()); }
+  ResultFlag result() const { return static_cast<ResultFlag>(putResult()); }
 
   bool isPutStack() {
-    return (putResult() & static_cast<uint32_t>(ResultType::STACK)) != 0;
+    return (putResult() & static_cast<uint32_t>(ResultFlag::STACK)) != 0;
   }
 
   bool isPutBlock() {
-    return (putResult() & static_cast<uint32_t>(ResultType::BLOCK)) != 0;
+    return (putResult() & static_cast<uint32_t>(ResultFlag::BLOCK)) != 0;
+  }
+
+  bool isPutIdent() {
+    return (putResult() & static_cast<uint32_t>(ResultFlag::IDENT)) != 0;
+  }
+
+  bool isPutReference() {
+    return (putResult() & static_cast<uint32_t>(ResultFlag::REFERENCE)) != 0;
   }
 
   bool isBackwardBrach() const {
@@ -144,6 +158,10 @@ public:
   }
 
   bool isForwardBrach() const { return !isBackwardBrach(); }
+
+  void removeFlag(ResultFlag flag) {
+    data_ &= ~static_cast<uint32_t>(ResultFlag::STACK);
+  }
 
 private:
   uint32_t putResult() const {

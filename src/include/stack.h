@@ -21,21 +21,22 @@ public:
       : stack_limit_(stack_limit), register_size_(register_size),
         block_result_(Value::_undefined()), result_(Value::_undefined()),
         left_(Value::_undefined()), right_(Value::_undefined()) {
-    data_.resize(stack_limit + register_size_);
+    data_.reserve(stack_limit + register_size_);
 
     for (uint32_t i = 0; i < register_size; i++) {
       data_.emplace_back(Value::_any());
     }
   }
 
-  auto data() const { return data_; }
-  auto size() const { return data().size(); }
+  auto &data() { return data_; }
+  auto size() const { return data_.size(); }
   auto registerSize() const { return register_size_; }
   auto stackLimit() const { return stack_limit_; }
   auto fullSize() const { return stack_limit_; }
   auto left() const { return left_; }
   auto right() const { return right_; }
   auto result() const { return result_; }
+  auto blockResult() const { return block_result_; }
 
   void setLeft(ValueRef value) { left_ = value; }
   void setRight(ValueRef value) { right_ = value; }
@@ -54,6 +55,7 @@ public:
   ValueRef pop();
   void pop(size_t count);
   void push();
+  void push(size_t count);
   void push(ValueRef value);
 
 private:
