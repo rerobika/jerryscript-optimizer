@@ -20,6 +20,12 @@ extern "C" {
 
 namespace optimizer {
 
+class Inst;
+
+using Offset = uint32_t;
+using InstRef = std::shared_ptr<Inst>;
+using InstList = std::vector<InstRef>;
+using InstMap = std::unordered_map<Offset, InstRef>;
 using LiteralIndex = uint16_t;
 
 class BytecodeFlags {
@@ -142,6 +148,8 @@ public:
   auto flags() const { return flags_; }
   auto literalPool() const { return literal_pool_; }
   auto &stack() { return stack_; }
+  auto &instructions() { return instructions_; }
+  auto &offsets() { return offsets_; }
 
   void setArguments(cbc_uint16_arguments_t *args);
   void setArguments(cbc_uint8_arguments_t *args);
@@ -152,6 +160,8 @@ public:
   static BytecodeRefList readFunctions(ecma_value_t function);
   static void readSubFunctions(BytecodeRefList &functions,
                                BytecodeRef byte_code);
+
+  uint32_t offset() { return byte_code_ - byte_code_start_; }
 
   uint8_t next() {
     assert(hasNext());
@@ -173,6 +183,8 @@ private:
   BytecodeArguments args_;
   LiteralPool literal_pool_;
   Stack stack_;
+  InstList instructions_;
+  InstMap offsets_;
 };
 
 } // namespace optimizer

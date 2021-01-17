@@ -184,6 +184,7 @@ void Inst::decodeArguments() {
 }
 
 bool Inst::decodeCBCOpcode() {
+  setOffset(byteCode()->offset());
   CBCOpcode cbc_op = byteCode()->next();
   Opcode opcode(cbc_op);
 

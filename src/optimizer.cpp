@@ -13,7 +13,16 @@ extern "C" {
 #include "optimizer.h"
 
 namespace optimizer {
-Optimizer::Optimizer(BytecodeRefList &list) : list_(std::move(list)) {}
+Optimizer::Optimizer(BytecodeRefList &list) : list_(std::move(list)) {
+  for (auto& it : list_) {
+    buildBasicBlocks(it);
+  }
+
+}
+
+void Optimizer::buildBasicBlocks(BytecodeRef byte_code) {
+  
+}
 
 Optimizer::~Optimizer() {}
 } // namespace optimizer

@@ -12,6 +12,8 @@
 #include <assert.h>
 #include <iostream>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #define unreachable() assert(0)

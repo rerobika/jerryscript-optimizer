@@ -216,6 +216,7 @@ public:
   auto argument() const { return argument_; }
   auto stackSnapshot() const { return stack_snapshot_; }
   auto &stack() { return byteCode()->stack(); }
+  auto offset() { return offset_; }
 
   void setStringLiteral() {
     Literal literal = decodeStringLiteral();
@@ -239,6 +240,7 @@ public:
   }
 
   void setPayload(uint32_t payload) { payload_ = payload; }
+  void setOffset(Offset offset) { offset_ = offset; }
 
   LiteralIndex decodeLiteralIndex();
   Literal decodeTemplateLiteral();
@@ -258,6 +260,7 @@ private:
   ValueRef string_literal_;
   ValueRef literal_value_;
   uint32_t payload_;
+  Offset offset_;
 };
 
 } // namespace optimizer

@@ -127,13 +127,15 @@ void Bytecode::buildInstructions() {
 #endif
 
   while (hasNext()) {
-    Inst inst(this);
+    instructions().emplace_back(std::make_shared<Inst>(this));
+    auto &inst = instructions().back();
 
-    if (!inst.decodeCBCOpcode()) {
+    if (!inst->decodeCBCOpcode()) {
       break;
     }
-    inst.decodeArguments();
-    inst.decodeGroupOpcode();
+    inst->decodeArguments();
+    inst->decodeGroupOpcode();
+    offsets().insert({inst->offset(), inst});
   }
 
 #if DUMP_INST

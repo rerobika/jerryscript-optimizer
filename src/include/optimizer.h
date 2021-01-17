@@ -20,6 +20,8 @@ public:
   Optimizer(BytecodeRefList &list);
   ~Optimizer();
 
+  void buildBasicBlocks(BytecodeRef byte_code);
+
   auto &list() { return list_; }
 
 private:
