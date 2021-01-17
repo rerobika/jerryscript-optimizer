@@ -26,16 +26,17 @@ public:
   auto &list() { return list_; }
 
 private:
-  InstRef buildBasicBlock(BytecodeRef byte_code, BasicBlockRef parent_bb,
-                          Offset start, Offset end,
-                          BasicBlockOptions options = BasicBlockOptions::NONE);
+  InstWeakRef
+  buildBasicBlock(BytecodeRef byte_code, BasicBlockRef parent_bb, Offset start,
+                  Offset end,
+                  BasicBlockOptions options = BasicBlockOptions::NONE);
 
   BasicBlockID next() { return bb_id_++; }
 
 private:
   BytecodeRefList list_;
   std::vector<std::pair<std::pair<Offset, Offset>, BasicBlockRef>> bb_ranges_;
-  BasicBlockID bb_id_{0};
+  BasicBlockID bb_id_;
 };
 
 } // namespace optimizer

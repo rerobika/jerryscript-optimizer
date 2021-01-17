@@ -230,7 +230,7 @@ public:
   Inst(Bytecode *byte_code)
       : byte_code_(byte_code), stack_snapshot_(nullptr),
         string_literal_(Value::_undefined()),
-        literal_value_(Value::_undefined()) {}
+        literal_value_(Value::_undefined()), flags_(0) {}
 
   ~Inst() { delete stack_snapshot_; }
 
@@ -289,7 +289,7 @@ public:
     }
   }
 
-  void setBasicBlock(BasicBlockRef bb) { bb_ = bb; }
+  void setBasicBlock(BasicBlockWeakRef bb) { bb_ = bb; }
 
   LiteralIndex decodeLiteralIndex();
   Literal decodeTemplateLiteral();
@@ -317,7 +317,7 @@ private:
   Argument argument_;
   ValueRef string_literal_;
   ValueRef literal_value_;
-  BasicBlockRef bb_;
+  BasicBlockWeakRef bb_;
   uint32_t payload_;
   uint32_t flags_;
   Offset offset_;

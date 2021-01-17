@@ -9,22 +9,24 @@
 #include "optimizer.h"
 
 namespace optimizer {
-Optimizer::Optimizer(BytecodeRefList &list) : list_(std::move(list)) {
+Optimizer::Optimizer(BytecodeRefList &list)
+    : list_(std::move(list)), bb_id_(0) {
   for (auto &it : list_) {
     buildBasicBlocks(it);
   }
 }
 
-InstRef Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
-                                   Offset start, Offset end,
-                                   BasicBlockOptions options) {
+InstWeakRef Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
+                                       Offset start, Offset end,
+                                       BasicBlockOptions options) {
   bb_ranges_.push_back({{start, end}, bb});
   BasicBlockRef parent_bb = bb;
 
-  InstRef last_inst;
+  InstWeakRef last_inst;
 
   for (Offset i = start; i <= end;) {
-    auto &inst = byte_code->offsets()[i];
+    auto &w_inst = byte_code->offsets()[i];
+    auto inst = w_inst.lock();
     last_inst = inst;
     parent_bb->addInst(inst);
     inst->setBasicBlock(parent_bb);
@@ -42,10 +44,11 @@ InstRef Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
         child_bb->addPredecessor(bb);
 
         if (inst->isConditionalJump()) {
-          InstRef jump_inst = buildBasicBlock(
+          InstWeakRef w_jump_inst = buildBasicBlock(
               byte_code, child_bb, i + inst->size(), i + jump_offset - 1,
               BasicBlockOptions::CONDITIONAL);
 
+          auto jump_inst = w_jump_inst.lock();
           assert(jump_inst->isJump());
 
           Offset jump_inst_offset = jump_inst->jumpOffset();
@@ -100,7 +103,7 @@ void Optimizer::buildBasicBlocks(BytecodeRef byte_code) {
   BasicBlockRef bb = BasicBlock::create(next());
   bb->addPredecessor(bb_start);
   bb_start->addSuccessor(bb);
-  byte_code->basicBlockList().push_back(bb_start);
+  byte_code->basicBlockList().push_back(std::move(bb_start));
 
   buildBasicBlock(byte_code, bb, 0, byte_code->instructions().back()->offset());
 

@@ -23,11 +23,15 @@ class BasicBlock;
 
 using Offset = uint32_t;
 using BasicBlockRef = std::shared_ptr<BasicBlock>;
+using BasicBlockWeakRef = std::weak_ptr<BasicBlock>;
 using BasicBlockList = std::vector<BasicBlockRef>;
+using BasicBlockWeakList = std::vector<BasicBlockWeakRef>;
 using BasicBlockID = uint32_t;
 using InstRef = std::shared_ptr<Inst>;
+using InstWeakRef = std::weak_ptr<Inst>;
 using InstList = std::vector<InstRef>;
-using InstMap = std::unordered_map<Offset, InstRef>;
+using InstWeakList = std::vector<InstWeakRef>;
+using InstMap = std::unordered_map<Offset, InstWeakRef>;
 using LiteralIndex = uint16_t;
 
 class BytecodeFlags {
@@ -135,6 +139,7 @@ private:
 
 class Bytecode;
 using BytecodeRef = std::shared_ptr<Bytecode>;
+using BytecodeWeakRef = std::weak_ptr<Bytecode>;
 using BytecodeRefList = std::vector<BytecodeRef>;
 
 class Bytecode {

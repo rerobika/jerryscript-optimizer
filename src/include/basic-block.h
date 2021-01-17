@@ -30,10 +30,9 @@ public:
   auto &insts() { return insts_; }
   auto id() const { return id_; }
 
-  void addInst(InstRef inst);
-  void addPredecessor(BasicBlockRef bb);
-  BasicBlockRef addSuccessor();
-  void addSuccessor(BasicBlockRef bb);
+  void addInst(InstWeakRef inst);
+  void addPredecessor(BasicBlockWeakRef bb);
+  void addSuccessor(BasicBlockWeakRef bb);
 
   static BasicBlockRef create(BasicBlockID id = 0) {
     return std::make_shared<BasicBlock>(id);
@@ -43,20 +42,22 @@ public:
     os << "ID: " << bb.id() << std::endl;
     os << "predecessors: [";
     for (size_t i = 0; i < bb.predesessors_.size(); i++) {
-      os << bb.predesessors_[i]->id()
-         << (i + 1 == bb.predesessors_.size() ? "" : ", ");
+      auto pred = bb.predesessors_[i].lock();
+      os << pred->id() << (i + 1 == bb.predesessors_.size() ? "" : ", ");
     }
     os << "]" << std::endl;
 
     os << "instructions:" << std::endl;
-    for (auto &inst : bb.insts_) {
+
+    for (auto &w_inst : bb.insts_) {
+      auto inst = w_inst.lock();
       os << *inst << std::endl;
     }
 
     os << "successors: [";
     for (size_t i = 0; i < bb.successors_.size(); i++) {
-      os << bb.successors_[i]->id()
-         << (i + 1 == bb.successors_.size() ? "" : ", ");
+      auto succ = bb.successors_[i].lock();
+      os << succ->id() << (i + 1 == bb.successors_.size() ? "" : ", ");
     }
     os << "]" << std::endl;
 
@@ -64,11 +65,11 @@ public:
   }
 
 private:
-  BasicBlockList predesessors_;
-  BasicBlockList successors_;
-  BasicBlockList dominated_;
-  BasicBlockRef dominator_;
-  InstList insts_;
+  BasicBlockWeakList predesessors_;
+  BasicBlockWeakList successors_;
+  BasicBlockWeakList dominated_;
+  BasicBlockWeakList dominator_;
+  InstWeakList insts_;
   BasicBlockID id_;
 };
 
