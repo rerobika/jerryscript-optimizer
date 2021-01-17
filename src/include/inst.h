@@ -175,7 +175,15 @@ class Opcode {
 public:
   Opcode() : Opcode(0) {}
   Opcode(CBCOpcode opcode)
-      : cbc_opcode_(opcode), opcode_data_(decode_table[opcode]) {}
+      : cbc_opcode_(opcode), opcode_data_(decode_table[opcode]) {
+#ifndef NDEBUG
+    if (!isExtOpcode()) {
+      cbc_op_ = static_cast<cbc_opcode_t>(cbc_opcode_);
+      cbc_ext_op_ = CBC_EXT_NOP;
+      group_op_ = static_cast<vm_oc_types>(opcode_data_.groupOpcode());
+    }
+#endif /* !NDEBUG */
+  }
 
   auto CBCopcode() const { return cbc_opcode_; }
   auto opcodeData() const { return opcode_data_; }
@@ -195,12 +203,27 @@ public:
     assert(!Opcode::isEndOpcode(cbc_op));
     opcode_data_ = decode_table[cbc_op + CBC_END + 1];
     cbc_opcode_ = cbc_op + 256;
+
+#ifndef NDEBUG
+    if (!isExtOpcode()) {
+      cbc_ext_op_ = static_cast<cbc_ext_opcode_t>(cbc_op);
+      cbc_op_ = CBC_END;
+      group_op_ = static_cast<vm_oc_types>(opcode_data_.groupOpcode());
+    }
+#endif /* !NDEBUG */
   }
 
 private:
+#ifndef NDEBUG
+  cbc_opcode_t cbc_op_;
+  cbc_ext_opcode_t cbc_ext_op_;
+  vm_oc_types group_op_;
+#endif /* !NDEBUG */
   CBCOpcode cbc_opcode_;
   OpcodeData opcode_data_;
 };
+
+enum class InstFlags { NONE = 0, JUMP = (1 << 0), CONDITIONAL_JUMP = (1 << 1) };
 
 class Inst {
 public:
@@ -211,12 +234,29 @@ public:
 
   ~Inst() { delete stack_snapshot_; }
 
-  auto byteCode() const { return byte_code_; }
-  auto opcode() const { return cbc_opcode_; }
-  auto argument() const { return argument_; }
+  auto byteCode() { return byte_code_; }
+  auto &opcode() { return opcode_; }
+  auto &argument() { return argument_; }
   auto stackSnapshot() const { return stack_snapshot_; }
   auto &stack() { return byteCode()->stack(); }
   auto offset() { return offset_; }
+  auto size() { return size_; }
+
+  bool isJump() const { return hasFlag(InstFlags::JUMP); }
+  bool isConditionalJump() const {
+    return hasFlag(InstFlags::CONDITIONAL_JUMP);
+  }
+
+  bool hasFlag(InstFlags flag) const {
+    return (flags_ & static_cast<uint32_t>(flag)) != 0;
+  }
+
+  void setFlag(InstFlags flag) { flags_ |= static_cast<uint32_t>(flag); }
+
+  Offset jumpOffset() const {
+    assert(isJump());
+    return argument_.branchOffset();
+  }
 
   void setStringLiteral() {
     Literal literal = decodeStringLiteral();
@@ -240,7 +280,16 @@ public:
   }
 
   void setPayload(uint32_t payload) { payload_ = payload; }
-  void setOffset(Offset offset) { offset_ = offset; }
+  void setOffset(Offset offset) {
+    offset_ = offset;
+    if (byteCode()->instructions().size() > 1) {
+      auto &prev_inst =
+          byteCode()->instructions()[byteCode()->instructions().size() - 2];
+      prev_inst->size_ = offset - prev_inst->offset();
+    }
+  }
+
+  void setBasicBlock(BasicBlockRef bb) { bb_ = bb; }
 
   LiteralIndex decodeLiteralIndex();
   Literal decodeTemplateLiteral();
@@ -252,16 +301,29 @@ public:
   void processPut();
   void decodeGroupOpcode();
 
+  friend std::ostream &operator<<(std::ostream &os, const Inst &inst) {
+    os << "Offset: " << inst.offset_ << ": "
+       << cbc_names[inst.opcode_.isExtOpcode()
+                        ? inst.opcode_.CBCopcode() - 256 + CBC_END + 1
+                        : inst.opcode_.CBCopcode()];
+
+    return os;
+  }
+
 private:
   Bytecode *byte_code_;
   Stack *stack_snapshot_;
-  Opcode cbc_opcode_;
+  Opcode opcode_;
   Argument argument_;
   ValueRef string_literal_;
   ValueRef literal_value_;
+  BasicBlockRef bb_;
   uint32_t payload_;
+  uint32_t flags_;
   Offset offset_;
+  size_t size_;
 };
 
+std::ostream &operator<<(std::ostream &os, const Inst &inst);
 } // namespace optimizer
 #endif // INST_H

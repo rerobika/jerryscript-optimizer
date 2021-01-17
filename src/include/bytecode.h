@@ -13,16 +13,18 @@
 #include "stack.h"
 
 extern "C" {
-#define this this_value
 #include "ecma-function-object.h"
-#undef this
 }
 
 namespace optimizer {
 
 class Inst;
+class BasicBlock;
 
 using Offset = uint32_t;
+using BasicBlockRef = std::shared_ptr<BasicBlock>;
+using BasicBlockList = std::vector<BasicBlockRef>;
+using BasicBlockID = uint32_t;
 using InstRef = std::shared_ptr<Inst>;
 using InstList = std::vector<InstRef>;
 using InstMap = std::unordered_map<Offset, InstRef>;
@@ -145,11 +147,14 @@ public:
   auto args() const { return args_; }
 
   auto function() const { return function_; }
+  auto &byteCodeStart() const { return byte_code_start_; }
+  auto &byteCodeCurrent() { return byte_code_; }
   auto flags() const { return flags_; }
   auto literalPool() const { return literal_pool_; }
   auto &stack() { return stack_; }
   auto &instructions() { return instructions_; }
   auto &offsets() { return offsets_; }
+  auto &basicBlockList() { return bb_list_; }
 
   void setArguments(cbc_uint16_arguments_t *args);
   void setArguments(cbc_uint8_arguments_t *args);
@@ -185,6 +190,7 @@ private:
   Stack stack_;
   InstList instructions_;
   InstMap offsets_;
+  BasicBlockList bb_list_;
 };
 
 } // namespace optimizer

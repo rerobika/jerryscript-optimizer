@@ -108,7 +108,7 @@ void Inst::decodeArguments() {
     break;
   }
   case OperandType::BRANCH: {
-    uint32_t offset_length = CBC_BRANCH_OFFSET_LENGTH(byteCode()->current());
+    uint32_t offset_length = CBC_BRANCH_OFFSET_LENGTH(opcode().CBCopcode());
     int32_t offset = byteCode()->next();
 
     if (offset_length > 1) {
@@ -201,13 +201,10 @@ bool Inst::decodeCBCOpcode() {
     opcode.toExtOpcode(cbc_op);
   }
 
-  cbc_opcode_ = opcode;
+  opcode_ = opcode;
 
 #if DUMP_INST
-  std::cout << cbc_names[cbc_opcode_.isExtOpcode()
-                             ? cbc_opcode_.CBCopcode() - 256 + CBC_END + 1
-                             : cbc_opcode_.CBCopcode()]
-            << std::endl;
+  std::cout << *this << std::endl;
 #endif
 
   return true;
@@ -768,23 +765,24 @@ void Inst::decodeGroupOpcode() {
   case VM_OC_POST_DECR: {
     uint32_t opcode_flags = groupOpcode - VM_OC_PROP_PRE_INCR;
 
+    byteCode()->byteCodeCurrent() = byteCode()->byteCodeStart() + offset() + 1;
+
     if (opcode_flags & VM_OC_POST_INCR_DECR_OPERATOR_FLAG) {
       if (OpcodeData().isPutStack()) {
         if (opcode_flags & VM_OC_IDENT_INCR_DECR_OPERATOR_FLAG) {
           stack().push(stack().result());
+        } else {
+          stack().push();
+          stack().setStack(-1, stack().getStack(-2));
+          stack().setStack(-2, stack().getStack(-3));
+          stack().setStack(-3, stack().result());
         }
+        OpcodeData().removeFlag(ResultFlag::STACK);
       } else {
-        stack().push();
-        stack().setStack(-1, stack().getStack(-2));
-        stack().setStack(-2, stack().getStack(-3));
-        stack().setStack(-3, stack().result());
+        stack().setBlockResult(stack().result());
+        OpcodeData().removeFlag(ResultFlag::BLOCK);
       }
-      OpcodeData().removeFlag(ResultFlag::STACK);
-    } else {
-      stack().setBlockResult(stack().result());
-      OpcodeData().removeFlag(ResultFlag::BLOCK);
     }
-
     stack().setResult(Value::_any());
     processPut();
     break;
@@ -900,10 +898,12 @@ void Inst::decodeGroupOpcode() {
     break;
   }
   case VM_OC_JUMP: {
+    setFlag(InstFlags::JUMP);
     break;
   }
   case VM_OC_BRANCH_IF_STRICT_EQUAL: {
     setLiteralValue(stack().pop());
+    setFlag(InstFlags::CONDITIONAL_JUMP);
     break;
   }
   case VM_OC_BRANCH_IF_TRUE:
@@ -911,11 +911,14 @@ void Inst::decodeGroupOpcode() {
   case VM_OC_BRANCH_IF_LOGICAL_TRUE:
   case VM_OC_BRANCH_IF_LOGICAL_FALSE: {
     setLiteralValue(stack().pop());
+    setFlag(InstFlags::JUMP);
+    setFlag(InstFlags::CONDITIONAL_JUMP);
     break;
   }
 #if ENABLED(JERRY_ESNEXT)
   case VM_OC_BRANCH_IF_NULLISH: {
     setLiteralValue(stack().getStack(-1));
+    setFlag(InstFlags::CONDITIONAL_JUMP);
     break;
   }
 #endif /* ENABLED (JERRY_ESNEXT) */
@@ -997,6 +1000,7 @@ void Inst::decodeGroupOpcode() {
     setStringLiteral(stack().left());
     setLiteralValue(stack().right());
     stack().push(Value::_boolean());
+    break;
   }
   case VM_OC_BLOCK_CREATE_CONTEXT: {
 #if ENABLED(JERRY_ESNEXT)

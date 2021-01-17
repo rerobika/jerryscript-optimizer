@@ -123,7 +123,7 @@ void Bytecode::buildInstructions() {
   decodeHeader();
 
 #if DUMP_INST
-  std::cout << "--------- function start --------" << std::endl;
+  std::cout << "--------- function intructions start --------" << std::endl;
 #endif
 
   while (hasNext()) {
@@ -131,6 +131,7 @@ void Bytecode::buildInstructions() {
     auto &inst = instructions().back();
 
     if (!inst->decodeCBCOpcode()) {
+      instructions().pop_back();
       break;
     }
     inst->decodeArguments();
@@ -139,7 +140,7 @@ void Bytecode::buildInstructions() {
   }
 
 #if DUMP_INST
-  std::cout << "--------- function end --------" << std::endl;
+  std::cout << "--------- function intructions end --------" << std::endl;
 #endif
 }
 

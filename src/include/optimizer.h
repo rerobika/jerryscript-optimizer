@@ -9,8 +9,9 @@
 #ifndef OPTIMIZER_H
 #define OPTIMIZER_H
 
-#include "bytecode.h"
+#include "basic-block.h"
 #include "common.h"
+#include "inst.h"
 #include "snapshot-readwriter.h"
 
 namespace optimizer {
@@ -25,7 +26,16 @@ public:
   auto &list() { return list_; }
 
 private:
+  InstRef buildBasicBlock(BytecodeRef byte_code, BasicBlockRef parent_bb,
+                          Offset start, Offset end,
+                          BasicBlockOptions options = BasicBlockOptions::NONE);
+
+  BasicBlockID next() { return bb_id_++; }
+
+private:
   BytecodeRefList list_;
+  std::vector<std::pair<std::pair<Offset, Offset>, BasicBlockRef>> bb_ranges_;
+  BasicBlockID bb_id_{0};
 };
 
 } // namespace optimizer
