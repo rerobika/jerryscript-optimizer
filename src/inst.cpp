@@ -215,7 +215,8 @@ void Inst::processPut() {
     LiteralIndex literal_index = decodeLiteralIndex();
 
     if (literal_index < byteCode()->args().registerEnd()) {
-      stack().setRegister(byteCode()->toRegisterIndex(literal_index), stack().result());
+      stack().setRegister(byteCode()->toRegisterIndex(literal_index),
+                          stack().result());
     } else {
       Literal literal = decodeLiteral(literal_index);
       setStringLiteral(literal);
@@ -227,7 +228,8 @@ void Inst::processPut() {
 
     if (base->type() == ValueType::INTERNAL) {
       uint32_t literal_index = ecma_get_integer_from_value(property->value());
-      stack().setRegister(byteCode()->toRegisterIndex(literal_index), stack().result());
+      stack().setRegister(byteCode()->toRegisterIndex(literal_index),
+                          stack().result());
     } else {
       stack().setResult(Value::_any());
     }
@@ -358,7 +360,8 @@ void Inst::decodeGroupOpcode() {
     LiteralIndex literal_index = decodeLiteralIndex();
 
     if (literal_index < byteCode()->args().registerEnd()) {
-      stack().setRegister(byteCode()->toRegisterIndex(literal_index), Value::_object());
+      stack().setRegister(byteCode()->toRegisterIndex(literal_index),
+                          Value::_object());
       break;
     }
 
@@ -382,7 +385,8 @@ void Inst::decodeGroupOpcode() {
     }
 
     if (literal_index < byteCode()->args().registerEnd()) {
-      stack().setRegister(byteCode()->toRegisterIndex(literal_index), lit_value);
+      stack().setRegister(byteCode()->toRegisterIndex(literal_index),
+                          lit_value);
       break;
     }
 
@@ -718,7 +722,8 @@ void Inst::decodeGroupOpcode() {
     if (literal_index < byteCode()->args().registerEnd()) {
       stack().push(Value::_internal());
       stack().push(Value::_number(literal_index));
-      stack().push(stack().getRegister(byteCode()->toRegisterIndex(literal_index)));
+      stack().push(
+          stack().getRegister(byteCode()->toRegisterIndex(literal_index)));
     } else {
       stack().push(Value::_object());
       stack().push(Value::_string());
@@ -795,7 +800,8 @@ void Inst::decodeGroupOpcode() {
   }
   case VM_OC_MOV_IDENT: {
     LiteralIndex literal_index = decodeLiteralIndex();
-    stack().setRegister(byteCode()->toRegisterIndex(literal_index), stack().left());
+    stack().setRegister(byteCode()->toRegisterIndex(literal_index),
+                        stack().left());
     break;
   }
   case VM_OC_ASSIGN_PROP: {
@@ -943,7 +949,8 @@ void Inst::decodeGroupOpcode() {
     LiteralIndex literal_index = decodeLiteralIndex();
 
     if (literal_index < byteCode()->args().registerEnd()) {
-      stack().setLeft(stack().getRegister(byteCode()->toRegisterIndex(literal_index)));
+      stack().setLeft(
+          stack().getRegister(byteCode()->toRegisterIndex(literal_index)));
     } else {
       stack().setLeft(Value::_any());
     }
@@ -979,6 +986,7 @@ void Inst::decodeGroupOpcode() {
     setStringLiteral(stack().left());
     setLiteralValue(stack().right());
     stack().push(Value::_boolean());
+    break;
   }
   case VM_OC_BIT_OR:
   case VM_OC_BIT_XOR:

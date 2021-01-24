@@ -19,11 +19,17 @@ namespace optimizer {
 static const char *basic_block_type_names[] = {
     "None",
     "loop-body",
+    "loop-test",
     "loop-update",
 };
 
-enum class BasicBlockOptions { NONE, DIRECT, CONDITIONAL };
-enum class BasicBlockType { NONE, LOOP_BODY, LOOP_UPDATE };
+enum class BasicBlockOptions { NONE, DIRECT, CONDITIONAL, LOOP };
+enum class BasicBlockType {
+  NONE,
+  LOOP_BODY,
+  LOOP_TEST,
+  LOOP_UPDATE,
+};
 
 class BasicBlock {
 public:
