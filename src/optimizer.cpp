@@ -16,9 +16,20 @@ Optimizer::Optimizer(BytecodeRefList &list)
   }
 }
 
+void Optimizer::connectSub(InstWeakRef w_last_inst, BasicBlockRef bb) {
+  auto last_inst = w_last_inst.lock();
+  auto last_inst_bb = last_inst->bb().lock();
+  if (last_inst_bb->id() != bb->id()) {
+    last_inst_bb->addSuccessor(bb);
+    bb->addPredecessor(last_inst_bb);
+  }
+}
+
 InstWeakRef Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
                                        Offset start, Offset end,
                                        BasicBlockOptions options) {
+  std::cout << "ID: " << bb->id() << ", from: " << start << ", to: " << end
+            << std::endl;
   bb_ranges_.push_back({{start, end}, bb});
   BasicBlockRef parent_bb = bb;
 
@@ -29,6 +40,7 @@ InstWeakRef Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
     auto inst = w_inst.lock();
     w_last_inst = inst;
     parent_bb->addInst(inst);
+    std::cout << "add:" << *inst << ", to: " << parent_bb->id() << std::endl;
     inst->setBasicBlock(parent_bb);
 
     if (!inst->isJump()) {
@@ -39,10 +51,6 @@ InstWeakRef Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
     int32_t jump_offset = inst->jumpOffset();
 
     if (jump_offset > 0) {
-      if (options == BasicBlockOptions::CONDITIONAL) {
-        return w_last_inst;
-      }
-
       if (inst->isConditionalJump()) {
         BasicBlockRef child_bb = BasicBlock::create(next());
         parent_bb->addSuccessor(child_bb);
@@ -55,34 +63,60 @@ InstWeakRef Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
         auto last_inst = w_last_inst.lock();
         if (!last_inst->isJump()) {
           i = last_inst->offset() + last_inst->size();
-          BasicBlockRef next_bb = BasicBlock::create(next());
-          parent_bb->addSuccessor(next_bb);
-          next_bb->addPredecessor(parent_bb);
-          next_bb->addPredecessor(child_bb);
-          child_bb->addSuccessor(next_bb);
-          parent_bb = next_bb;
-          bb_ranges_.push_back({{i, end}, parent_bb});
-          continue;
+          auto last_inst_bb = last_inst->bb().lock();
+
+          if (last_inst_bb == child_bb) {
+            BasicBlockRef next_bb = BasicBlock::create(next());
+            parent_bb->addSuccessor(next_bb);
+            next_bb->addPredecessor(parent_bb);
+            next_bb->addPredecessor(child_bb);
+            child_bb->addSuccessor(next_bb);
+            parent_bb = next_bb;
+          } else {
+            auto last_bb = bb_ranges_.back().second;
+            bb_ranges_.pop_back();
+            BasicBlockRef next_bb = last_bb;
+
+            if (!last_bb->isEmpty()) {
+              next_bb = BasicBlock::create(next());
+              last_bb->addSuccessor(next_bb);
+              next_bb->addPredecessor(last_bb);
+            }
+
+            parent_bb->addSuccessor(next_bb);
+            next_bb->addPredecessor(parent_bb);
+            parent_bb = next_bb;
+          }
+        } else {
+          int32_t jump_inst_offset = last_inst->jumpOffset();
+          assert(jump_inst_offset > 0);
+
+          BasicBlockRef child2_bb = BasicBlock::create(next());
+          parent_bb->addSuccessor(child2_bb);
+          child2_bb->addPredecessor(parent_bb);
+
+          Offset condition_end = last_inst->offset() + jump_inst_offset;
+          w_last_inst = buildBasicBlock(byte_code, child2_bb, i + jump_offset,
+                                        condition_end - 1);
+
+          i = condition_end;
+          parent_bb = BasicBlock::create(next());
+          parent_bb->addPredecessor(child_bb);
+          parent_bb->addPredecessor(child2_bb);
+          child_bb->addSuccessor(parent_bb);
+          child2_bb->addSuccessor(parent_bb);
         }
 
-        int32_t jump_inst_offset = last_inst->jumpOffset();
-        assert(jump_inst_offset > 0);
-
-        BasicBlockRef child2_bb = BasicBlock::create(next());
-        parent_bb->addSuccessor(child2_bb);
-        child2_bb->addPredecessor(parent_bb);
-
-        Offset condition_end = last_inst->offset() + jump_inst_offset;
-        buildBasicBlock(byte_code, child2_bb, i + jump_offset,
-                        condition_end - 1);
-        i = condition_end;
-        parent_bb = BasicBlock::create(next());
-        parent_bb->addPredecessor(child_bb);
-        parent_bb->addPredecessor(child2_bb);
-        child_bb->addSuccessor(parent_bb);
-        child2_bb->addSuccessor(parent_bb);
         bb_ranges_.push_back({{i, end}, parent_bb});
+        if (options == BasicBlockOptions::CONDITIONAL) {
+          return w_last_inst;
+        }
+
         continue;
+      }
+
+      if (options == BasicBlockOptions::CONDITIONAL) {
+        return w_last_inst;
       }
 
       int32_t incr_start = jump_offset;
@@ -100,12 +134,7 @@ InstWeakRef Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
           byte_code, body_bb, jump_inst->offset() + jump_inst_offset,
           i + incr_start - 1);
 
-      auto last_inst = w_last_inst.lock();
-      auto last_inst_bb = last_inst->bb().lock();
-      if (last_inst_bb->id() != parent_bb->id()) {
-        last_inst_bb->addSuccessor(parent_bb);
-        parent_bb->addPredecessor(last_inst_bb);
-      }
+      connectSub(w_last_inst, parent_bb);
 
       body_bb->setType(BasicBlockType::LOOP_BODY);
       incr_bb->setType(BasicBlockType::LOOP_UPDATE);

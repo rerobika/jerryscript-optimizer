@@ -38,6 +38,8 @@ public:
   auto id() const { return id_; }
   auto type() const { return type_; }
 
+  bool isEmpty() const { return insts_.empty(); }
+
   void setType(BasicBlockType type) { type_ = type; }
 
   void addInst(InstWeakRef inst);
@@ -45,6 +47,7 @@ public:
   void addSuccessor(BasicBlockWeakRef bb);
 
   static BasicBlockRef create(BasicBlockID id = 0) {
+    std::cout << "Create BB: " << id << std::endl;
     return std::make_shared<BasicBlock>(id);
   }
 
@@ -55,7 +58,8 @@ public:
     ;
 
     if (bb.type() != BasicBlockType::NONE) {
-      os << "Type: " << basic_block_type_names[static_cast<uint32_t>(bb.type())] << std::endl;
+      os << "Type: " << basic_block_type_names[static_cast<uint32_t>(bb.type())]
+         << std::endl;
     }
 
     os << "predecessors: [";

@@ -230,7 +230,7 @@ public:
   Inst(Bytecode *byte_code)
       : byte_code_(byte_code), stack_snapshot_(nullptr),
         string_literal_(Value::_undefined()),
-        literal_value_(Value::_undefined()), flags_(0) {}
+        literal_value_(Value::_undefined()), flags_(0), offset_(0) {}
 
   ~Inst() { delete stack_snapshot_; }
 
@@ -286,9 +286,11 @@ public:
     if (byteCode()->instructions().size() > 1) {
       auto &prev_inst =
           byteCode()->instructions()[byteCode()->instructions().size() - 2];
-      prev_inst->size_ = offset - prev_inst->offset();
+      prev_inst->setSize(offset - prev_inst->offset());
     }
   }
+
+  void setSize(size_t size) { size_ = size; }
 
   void setBasicBlock(BasicBlockWeakRef bb) { bb_ = bb; }
 

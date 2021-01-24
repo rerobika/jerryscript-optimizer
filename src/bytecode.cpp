@@ -117,7 +117,7 @@ void Bytecode::setBytecodeEnd() {
     size -= sizeof(ecma_value_t);
   }
 
-  byte_code_end_ = reinterpret_cast<uint8_t*>(compiledCode()) + size;
+  byte_code_end_ = reinterpret_cast<uint8_t *>(compiledCode()) + size;
 }
 
 void Bytecode::decodeHeader() {
@@ -154,6 +154,13 @@ void Bytecode::buildInstructions() {
     inst->decodeArguments();
     inst->decodeGroupOpcode();
     offsets().insert({inst->offset(), inst});
+  }
+
+  auto &inst = instructions().back();
+
+  /* end of bytecode stream */
+  if (inst->size() == 0) {
+    instructions().back()->setSize(offset() - instructions().back()->offset());
   }
 
 #if DUMP_INST

@@ -26,6 +26,7 @@ public:
   auto &list() { return list_; }
 
 private:
+  void connectSub(InstWeakRef w_last_inst, BasicBlockRef bb);
   InstWeakRef
   buildBasicBlock(BytecodeRef byte_code, BasicBlockRef parent_bb, Offset start,
                   Offset end,
