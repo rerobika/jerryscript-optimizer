@@ -44,6 +44,18 @@ public:
 
   bool isFunction() const { return CBC_IS_FUNCTION(flags()) != 0; }
 
+  bool hasExtendedInfo() const {
+    return (flags() & CBC_CODE_FLAGS_HAS_EXTENDED_INFO) != 0;
+  }
+
+  bool hasTaggedTemplateLiterals() const {
+    return (flags() & CBC_CODE_FLAGS_HAS_TAGGED_LITERALS) != 0;
+  }
+
+  bool hasName() const {
+    return CBC_FUNCTION_GET_TYPE(flags()) != CBC_FUNCTION_CONSTRUCTOR;
+  }
+
   bool uint16Arguments() const {
     return (flags() & CBC_CODE_FLAGS_UINT16_ARGUMENTS) != 0;
   }
@@ -161,6 +173,10 @@ public:
   auto &instructions() { return instructions_; }
   auto &offsets() { return offsets_; }
   auto &basicBlockList() { return bb_list_; }
+
+  size_t compiledCodesize() const {
+    return compiledCode()->size << JMEM_ALIGNMENT_LOG;
+  }
 
   void setArguments(cbc_uint16_arguments_t *args);
   void setArguments(cbc_uint8_arguments_t *args);

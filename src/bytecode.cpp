@@ -99,8 +99,25 @@ void Bytecode::setEncoding() {
 }
 
 void Bytecode::setBytecodeEnd() {
-  byte_code_end_ = reinterpret_cast<uint8_t *>(
-      ecma_compiled_code_resolve_arguments_start(compiled_code_));
+  size_t size = compiledCodesize();
+
+  if (flags().mappedArgumentsNeeded()) {
+    size -= args().argumentEnd() * sizeof(ecma_value_t);
+  }
+
+  if (flags().hasExtendedInfo()) {
+    size -= sizeof(ecma_value_t);
+  }
+
+  if (flags().hasName()) {
+    size -= sizeof(ecma_value_t);
+  }
+
+  if (flags().hasTaggedTemplateLiterals()) {
+    size -= sizeof(ecma_value_t);
+  }
+
+  byte_code_end_ = reinterpret_cast<uint8_t*>(compiledCode()) + size;
 }
 
 void Bytecode::decodeHeader() {
