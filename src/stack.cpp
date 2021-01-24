@@ -11,14 +11,14 @@
 namespace optimizer {
 
 ValueRef Stack::pop() {
-  assert(size() > registerSize());
+  assert(stackSize() >= 0);
   ValueRef value = data_.back();
   data_.pop_back();
   return value;
 }
 
 void Stack::pop(size_t count) {
-  assert(size() - count > registerSize());
+  assert(stackSize() - count >= 0);
   data_.resize(data_.size() - count);
 }
 
@@ -30,7 +30,7 @@ void Stack::push(size_t count) {
 void Stack::push() { push(Value::_undefined()); };
 
 void Stack::push(ValueRef value) {
-  assert(size() < fullSize());
+  assert(stackSize() < stackLimit());
   data_.push_back(value);
 }
 
@@ -41,18 +41,17 @@ void Stack::resetOperands() {
 
 void Stack::shift(size_t from, size_t offset) {
   for (size_t i = 0; i < offset; i++) {
-    data_[size() - registerSize() + from + i] =
-        data_[size() - registerSize() + from + i - 1];
+    data_[stackSize() + from + i] = data_[stackSize() + from + i - 1];
   }
 }
 
 void Stack::setRegister(size_t index, ValueRef value) {
-  assert(index > registerSize());
-  data_[index] = value;
+  assert(index < registerCount());
+  registers_[index] = value;
 }
 
 void Stack::setStack(int32_t offset, ValueRef value) {
   assert(offset <= static_cast<int32_t>(stackLimit()));
-  data_[size() + offset] = value;
+  data_[stackSize() + offset] = value;
 }
 } // namespace optimizer

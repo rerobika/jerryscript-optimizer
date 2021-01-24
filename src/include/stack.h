@@ -17,20 +17,23 @@ namespace optimizer {
 class Stack {
 public:
   Stack() : Stack(0, 0) {}
-  Stack(uint32_t stack_limit, uint32_t register_size)
-      : stack_limit_(stack_limit), register_size_(register_size),
+  Stack(uint32_t stack_limit, uint32_t register_count)
+      : stack_limit_(stack_limit), register_count_(register_count),
         block_result_(Value::_undefined()), result_(Value::_undefined()),
         left_(Value::_undefined()), right_(Value::_undefined()) {
-    data_.reserve(stack_limit + register_size_);
+    data_.reserve(stack_limit);
+    registers_.reserve(register_count);
 
-    for (uint32_t i = 0; i < register_size; i++) {
-      data_.emplace_back(Value::_any());
+    for (uint32_t i = 0; i < register_count; i++) {
+      registers_.emplace_back(Value::_any());
     }
   }
 
   auto &data() { return data_; }
-  auto size() const { return data_.size(); }
-  auto registerSize() const { return register_size_; }
+  auto &registers() { return registers_; }
+  auto stackSize() const { return data_.size(); }
+  auto regSize() const { return registers_.size(); }
+  auto registerCount() const { return register_count_; }
   auto stackLimit() const { return stack_limit_; }
   auto fullSize() const { return stack_limit_; }
   auto left() const { return left_; }
@@ -48,9 +51,9 @@ public:
   void resetOperands();
   void shift(size_t from, size_t offset);
 
-  ValueRef &getRegister(int i) { return data_[i]; }
-  ValueRef &getStack(int i) { return data_[registerSize() + i]; }
-  ValueRef &getStack() { return data_[registerSize() + size()]; }
+  ValueRef &getRegister(int i) { return registers_[i]; }
+  ValueRef &getStack(int i) { return data_[i]; }
+  ValueRef &getStack() { return data_[stackSize()]; }
 
   ValueRef pop();
   void pop(size_t count);
@@ -60,8 +63,9 @@ public:
 
 private:
   ValueRefList data_;
+  ValueRefList registers_;
   uint32_t stack_limit_;
-  uint32_t register_size_;
+  uint32_t register_count_;
   ValueRef block_result_;
   ValueRef result_;
   ValueRef left_;

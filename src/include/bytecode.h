@@ -22,6 +22,7 @@ class Inst;
 class BasicBlock;
 
 using Offset = uint32_t;
+#define OffsetMax std::numeric_limits<Offset>::max()
 using BasicBlockRef = std::shared_ptr<BasicBlock>;
 using BasicBlockWeakRef = std::weak_ptr<BasicBlock>;
 using BasicBlockList = std::vector<BasicBlockRef>;
@@ -165,6 +166,10 @@ public:
   void setArguments(cbc_uint8_arguments_t *args);
   void setEncoding();
   void setBytecodeEnd();
+
+  uint32_t toRegisterIndex(LiteralIndex index) {
+    return index - args().argumentEnd();
+  };
 
   static size_t countFunctions(std::string snapshot);
   static BytecodeRefList readFunctions(ecma_value_t function);

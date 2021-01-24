@@ -241,6 +241,7 @@ public:
   auto &stack() { return byteCode()->stack(); }
   auto offset() { return offset_; }
   auto size() { return size_; }
+  auto bb() { return bb_; }
 
   bool isJump() const { return hasFlag(InstFlags::JUMP); }
   bool isConditionalJump() const {
@@ -253,7 +254,7 @@ public:
 
   void setFlag(InstFlags flag) { flags_ |= static_cast<uint32_t>(flag); }
 
-  Offset jumpOffset() const {
+  int32_t jumpOffset() const {
     assert(isJump());
     return argument_.branchOffset();
   }

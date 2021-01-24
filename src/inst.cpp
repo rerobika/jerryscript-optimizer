@@ -18,7 +18,7 @@ ValueRef Literal::toValueRef(Bytecode *byte_code) {
   }
   case LiteralType::REGISTER: {
     assert(index() < byte_code->args().registerEnd());
-    return byte_code->stack().getRegister(index());
+    return byte_code->stack().getRegister(byte_code->toRegisterIndex(index()));
   }
   case LiteralType::IDENT: {
     assert(index() < byte_code->args().identEnd());
@@ -122,7 +122,7 @@ void Inst::decodeArguments() {
       }
     }
 
-    if (OpcodeData().isBackwardBrach()) {
+    if (opcode().opcodeData().isBackwardBrach()) {
       offset = -offset;
     }
 
@@ -215,7 +215,7 @@ void Inst::processPut() {
     LiteralIndex literal_index = decodeLiteralIndex();
 
     if (literal_index < byteCode()->args().registerEnd()) {
-      stack().setRegister(literal_index, stack().result());
+      stack().setRegister(byteCode()->toRegisterIndex(literal_index), stack().result());
     } else {
       Literal literal = decodeLiteral(literal_index);
       setStringLiteral(literal);
@@ -226,8 +226,8 @@ void Inst::processPut() {
     ValueRef base = stack().pop();
 
     if (base->type() == ValueType::INTERNAL) {
-      uint32_t literal_index = ecma_get_integer_from_value(base->value());
-      stack().setRegister(literal_index, stack().result());
+      uint32_t literal_index = ecma_get_integer_from_value(property->value());
+      stack().setRegister(byteCode()->toRegisterIndex(literal_index), stack().result());
     } else {
       stack().setResult(Value::_any());
     }
@@ -238,9 +238,9 @@ void Inst::processPut() {
     }
   }
 
-  if (OpcodeData().isPutStack()) {
+  if (opcode().opcodeData().isPutStack()) {
     stack().push(Value::_any());
-  } else if (OpcodeData().isPutBlock()) {
+  } else if (opcode().opcodeData().isPutBlock()) {
     stack().setBlockResult(Value::_any());
   }
 }
@@ -358,7 +358,7 @@ void Inst::decodeGroupOpcode() {
     LiteralIndex literal_index = decodeLiteralIndex();
 
     if (literal_index < byteCode()->args().registerEnd()) {
-      stack().setRegister(literal_index, Value::_object());
+      stack().setRegister(byteCode()->toRegisterIndex(literal_index), Value::_object());
       break;
     }
 
@@ -376,13 +376,13 @@ void Inst::decodeGroupOpcode() {
     ValueRef lit_value;
 
     if (value_index < byteCode()->args().registerEnd()) {
-      lit_value = stack().getRegister(value_index);
+      lit_value = stack().getRegister(byteCode()->toRegisterIndex(value_index));
     } else {
       lit_value = Value::_object();
     }
 
     if (literal_index < byteCode()->args().registerEnd()) {
-      stack().setRegister(literal_index, lit_value);
+      stack().setRegister(byteCode()->toRegisterIndex(literal_index), lit_value);
       break;
     }
 
@@ -479,9 +479,9 @@ void Inst::decodeGroupOpcode() {
     auto argc = byteCode()->next();
     stack().pop(argc);
     stack().pop(1); // function object
-    if (OpcodeData().isPutStack()) {
+    if (opcode().opcodeData().isPutStack()) {
       stack().push(Value::_any());
-    } else if (OpcodeData().isPutBlock()) {
+    } else if (opcode().opcodeData().isPutBlock()) {
       stack().setBlockResult(Value::_any());
     }
     break;
@@ -635,9 +635,9 @@ void Inst::decodeGroupOpcode() {
     stack().pop(opcode().CBCopcode() >= CBC_EXT_SPREAD_CALL_PROP ? 3 : 1);
     stack().push(Value::_internal());
 
-    if (OpcodeData().isPutStack()) {
+    if (opcode().opcodeData().isPutStack()) {
       stack().push(Value::_any());
-    } else if (OpcodeData().isPutBlock()) {
+    } else if (opcode().opcodeData().isPutBlock()) {
       stack().setBlockResult(Value::_any());
     }
     break;
@@ -718,7 +718,7 @@ void Inst::decodeGroupOpcode() {
     if (literal_index < byteCode()->args().registerEnd()) {
       stack().push(Value::_internal());
       stack().push(Value::_number(literal_index));
-      stack().push(stack().getRegister(literal_index));
+      stack().push(stack().getRegister(byteCode()->toRegisterIndex(literal_index)));
     } else {
       stack().push(Value::_object());
       stack().push(Value::_string());
@@ -768,7 +768,7 @@ void Inst::decodeGroupOpcode() {
     byteCode()->byteCodeCurrent() = byteCode()->byteCodeStart() + offset() + 1;
 
     if (opcode_flags & VM_OC_POST_INCR_DECR_OPERATOR_FLAG) {
-      if (OpcodeData().isPutStack()) {
+      if (opcode().opcodeData().isPutStack()) {
         if (opcode_flags & VM_OC_IDENT_INCR_DECR_OPERATOR_FLAG) {
           stack().push(stack().result());
         } else {
@@ -777,10 +777,10 @@ void Inst::decodeGroupOpcode() {
           stack().setStack(-2, stack().getStack(-3));
           stack().setStack(-3, stack().result());
         }
-        OpcodeData().removeFlag(ResultFlag::STACK);
+        opcode().opcodeData().removeFlag(ResultFlag::STACK);
       } else {
         stack().setBlockResult(stack().result());
-        OpcodeData().removeFlag(ResultFlag::BLOCK);
+        opcode().opcodeData().removeFlag(ResultFlag::BLOCK);
       }
     }
     stack().setResult(Value::_any());
@@ -795,7 +795,7 @@ void Inst::decodeGroupOpcode() {
   }
   case VM_OC_MOV_IDENT: {
     LiteralIndex literal_index = decodeLiteralIndex();
-    stack().setRegister(literal_index, stack().left());
+    stack().setRegister(byteCode()->toRegisterIndex(literal_index), stack().left());
     break;
   }
   case VM_OC_ASSIGN_PROP: {
@@ -850,9 +850,9 @@ void Inst::decodeGroupOpcode() {
 
     stack().pop(argc);
     stack().pop(1); // function object
-    if (OpcodeData().isPutStack()) {
+    if (opcode().opcodeData().isPutStack()) {
       stack().push(Value::_any());
-    } else if (OpcodeData().isPutBlock()) {
+    } else if (opcode().opcodeData().isPutBlock()) {
       stack().setBlockResult(Value::_any());
     }
     break;
@@ -867,9 +867,9 @@ void Inst::decodeGroupOpcode() {
 
     stack().pop(argc);
     stack().pop(1); // function object
-    if (OpcodeData().isPutStack()) {
+    if (opcode().opcodeData().isPutStack()) {
       stack().push(Value::_any());
-    } else if (OpcodeData().isPutBlock()) {
+    } else if (opcode().opcodeData().isPutBlock()) {
       stack().setBlockResult(Value::_any());
     }
     break;
@@ -943,7 +943,7 @@ void Inst::decodeGroupOpcode() {
     LiteralIndex literal_index = decodeLiteralIndex();
 
     if (literal_index < byteCode()->args().registerEnd()) {
-      stack().setLeft(stack().getRegister(literal_index));
+      stack().setLeft(stack().getRegister(byteCode()->toRegisterIndex(literal_index)));
     } else {
       stack().setLeft(Value::_any());
     }

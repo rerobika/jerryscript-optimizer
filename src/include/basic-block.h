@@ -16,7 +16,14 @@ namespace optimizer {
 
 #define INVALID_BASIC_BLOCK_ID UINT32_MAX
 
-enum class BasicBlockOptions { NONE, CONDITIONAL };
+static const char *basic_block_type_names[] = {
+    "None",
+    "loop-body",
+    "loop-update",
+};
+
+enum class BasicBlockOptions { NONE, DIRECT, CONDITIONAL };
+enum class BasicBlockType { NONE, LOOP_BODY, LOOP_UPDATE };
 
 class BasicBlock {
 public:
@@ -29,6 +36,9 @@ public:
   auto &dominator() { return dominator_; }
   auto &insts() { return insts_; }
   auto id() const { return id_; }
+  auto type() const { return type_; }
+
+  void setType(BasicBlockType type) { type_ = type; }
 
   void addInst(InstWeakRef inst);
   void addPredecessor(BasicBlockWeakRef bb);
@@ -39,7 +49,15 @@ public:
   }
 
   friend std::ostream &operator<<(std::ostream &os, const BasicBlock &bb) {
-    os << "ID: " << bb.id() << std::endl;
+    os << "ID: " << bb.id()
+       << (bb.id() == 0 ? " <start> " : bb.id() == 1 ? " <end>" : "")
+       << std::endl;
+    ;
+
+    if (bb.type() != BasicBlockType::NONE) {
+      os << "Type: " << basic_block_type_names[static_cast<uint32_t>(bb.type())] << std::endl;
+    }
+
     os << "predecessors: [";
     for (size_t i = 0; i < bb.predesessors_.size(); i++) {
       auto pred = bb.predesessors_[i].lock();
@@ -71,6 +89,7 @@ private:
   BasicBlockWeakList dominator_;
   InstWeakList insts_;
   BasicBlockID id_;
+  BasicBlockType type_;
 };
 
 } // namespace optimizer
