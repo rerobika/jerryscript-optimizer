@@ -58,9 +58,11 @@ public:
   void removeInaccessible();
   bool removePredecessor(const BasicBlockID id);
   bool removeSuccessor(const BasicBlockID id);
-  void remove(const BasicBlockID id);
-  void removeAllPredecessors(const BasicBlockID id);
-  void removeAllSuccessor(const BasicBlockID id);
+  void remove();
+  void removeAllPredecessors();
+  void removeAllSuccessors();
+
+  static BasicBlockRef split(BasicBlockRef bb, BasicBlockID id, size_t from);
 
   void addFlag(BasicBlockFlags flags) {
     flags_ |= static_cast<uint32_t>(flags);

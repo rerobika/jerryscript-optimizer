@@ -39,6 +39,7 @@ private:
   BytecodeRefList list_;
   std::vector<std::pair<std::pair<Offset, Offset>, BasicBlockRef>> bb_ranges_;
   std::vector<BasicBlockRef> loop_breaks_;
+  std::vector<std::pair<BasicBlockRef, Offset>> loop_continues_;
   BasicBlockID bb_id_;
 };
 

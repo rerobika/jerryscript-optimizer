@@ -89,15 +89,15 @@ bool BasicBlock::removeSuccessor(const BasicBlockID id) {
   return deleted;
 }
 
-void BasicBlock::remove(const BasicBlockID id) {
-  removeAllPredecessors(id);
-  removeAllSuccessor(id);
+void BasicBlock::remove() {
+  removeAllPredecessors();
+  removeAllSuccessors();
 }
 
-void BasicBlock::removeAllPredecessors(const BasicBlockID id) {
+void BasicBlock::removeAllPredecessors() {
   for (auto iter = predecessors().begin(); iter != predecessors().end();) {
     auto pred = (*iter).lock();
-    if (pred->removeSuccessor(id)) {
+    if (pred->removeSuccessor(id())) {
       iter = predecessors().begin();
     } else {
       iter++;
@@ -105,12 +105,12 @@ void BasicBlock::removeAllPredecessors(const BasicBlockID id) {
   }
 }
 
-void BasicBlock::removeAllSuccessor(const BasicBlockID id) {
+void BasicBlock::removeAllSuccessors() {
   for (auto iter = successors().begin(), end = successors().end();
        iter != end;) {
     auto succ = (*iter).lock();
 
-    if (succ->removePredecessor(id)) {
+    if (succ->removePredecessor(id())) {
       iter = successors().begin();
     } else {
       iter++;
@@ -122,7 +122,7 @@ void BasicBlock::removeInaccessible() {
   LOG("Removing BB:" << id() << " since it's inaccessible");
   assert(isInaccessible());
 
-  removeAllSuccessor(id());
+  removeAllSuccessors();
 }
 
 void BasicBlock::removeEmpty() {
@@ -136,7 +136,37 @@ void BasicBlock::removeEmpty() {
     }
   }
 
-  remove(id());
+  remove();
+}
+
+BasicBlockRef BasicBlock::split(BasicBlockRef bb, BasicBlockID id,
+                                size_t from) {
+  BasicBlockRef new_bb = BasicBlock::create(id);
+  bool copied_anything = false;
+  for (auto iter = bb->insts().begin(); iter != bb->insts().end();) {
+    auto inst = (*iter).lock();
+    if (inst->offset() >= from) {
+      new_bb->addInst(inst);
+      iter = bb->insts().erase(iter);
+      copied_anything = true;
+    } else {
+      iter++;
+    }
+  }
+
+  if (copied_anything) {
+    for (auto &succ : bb->successors()) {
+      new_bb->addSuccessor(succ);
+      succ.lock()->addPredecessor(new_bb); /* all bb succs -> new_bb succs */
+    }
+
+    bb->removeAllSuccessors();
+
+    new_bb->addPredecessor(bb);
+    bb->addSuccessor(new_bb); /* bb -> new_bb */
+  }
+
+  return new_bb;
 }
 
 } // namespace optimizer

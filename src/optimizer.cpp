@@ -40,6 +40,8 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
     auto &w_inst = byte_code->offsets()[i];
     auto inst = w_inst.lock();
     w_last_inst = inst;
+    bool is_last_inst = (i + inst->size()) > end;
+
     if (append_inst) {
       parent_bb->addInst(inst);
       inst->setBasicBlock(parent_bb);
@@ -146,7 +148,24 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
 
         if (jump_distance == 0) {
           /* Found the jump part of the conditional jump 1st case */
-          break;
+          if (is_last_inst) {
+            break;
+          }
+          /* Found continue statement */
+          else {
+            loop_continues_.push_back({parent_bb, jump_target});
+            while (i < end) {
+              i += inst->size();
+              inst = byte_code->offsets()[i].lock();
+
+              if (inst->isJump()) {
+                append_inst = false;
+                break;
+              }
+              LOG("skip: " << *inst << " due to it's dead after continue");
+            };
+            continue;
+          }
         } else {
           w_last_bb.lock()->addFlag(BasicBlockFlags::BREAK_SUCC);
           /* found loop break */
@@ -163,8 +182,46 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
           append_inst = false;
           continue;
         }
+      } else {
+        bool covered = false;
+        for (auto &bb_range : bb_ranges_) {
+          size_t range_start = bb_range.first.first;
+          if (range_start > jump_target) {
+            covered = true;
+            break;
+          }
+        }
+
+        if (covered) {
+          loop_continues_.push_back({parent_bb, jump_target});
+          /* found top level loop continue */
+          while (i < end) {
+            i += inst->size();
+            inst = byte_code->offsets()[i].lock();
+
+            if (i == jump_target) {
+              /* found for update in the same level */
+              BasicBlockRef update_bb = BasicBlock::create(next());
+              update_bb->setType(BasicBlockType::LOOP_UPDATE);
+
+              update_bb->addPredecessor(parent_bb);
+              parent_bb->addSuccessor(update_bb); /* parent -> update */
+
+              w_last_bb = update_bb;
+              parent_bb = update_bb;
+              w_last_inst = inst;
+              /* Invalidate update creation */
+              loop_continues_.back().second = 0;
+              bb_ranges_.push_back({{i, end}, parent_bb});
+              break;
+            }
+            LOG("skip: " << *inst << " due to it's dead after continue");
+          };
+          continue;
+        }
       }
 
+      /* found for statement */
       int32_t test_start = jump_offset;
       BasicBlockRef test_bb = BasicBlock::create(next());
       test_bb->setType(BasicBlockType::LOOP_TEST);
@@ -184,9 +241,10 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
       BasicBlockRef body_bb = BasicBlock::create(next());
       body_bb->setType(BasicBlockType::LOOP_BODY);
 
-      BBResult w_body = buildBasicBlock(
-          byte_code, body_bb, test_last_inst->offset() + test_inst_offset,
-          i + test_start - 1);
+      size_t body_start = test_last_inst->offset() + test_inst_offset;
+      size_t body_end = i + test_start - 1;
+      BBResult w_body =
+          buildBasicBlock(byte_code, body_bb, body_start, body_end);
 
       w_last_inst = w_body.first;
       w_last_bb = w_body.second;
@@ -212,7 +270,29 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
         next_bb->addPredecessor(loop_break);
       }
 
+      for (auto &loop_continue : loop_continues_) {
+        if (loop_continue.second != 0) {
+          for (auto &bb_range : bb_ranges_) {
+            size_t range_start = bb_range.first.first;
+            size_t range_end = bb_range.first.second;
+            size_t update_start = loop_continue.second;
+
+            if (update_start >= range_start && update_start <= range_end) {
+              BasicBlockRef update_bb =
+                  BasicBlock::split(body_last_inst_bb, next(), update_start);
+
+              loop_continue.first->addSuccessor(update_bb);
+              update_bb->addPredecessor(loop_continue.first);
+
+              bb_ranges_.push_back({{update_start, body_end}, update_bb});
+              break;
+            }
+          }
+        }
+      }
+
       loop_breaks_.clear();
+      loop_continues_.clear();
 
       parent_bb = next_bb;
       w_last_bb = next_bb;

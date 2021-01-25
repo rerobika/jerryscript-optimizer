@@ -321,6 +321,10 @@ public:
                         ? inst.opcode_.CBCopcode() - 256 + CBC_END + 1
                         : inst.opcode_.CBCopcode()];
 
+    if (inst.argument_.type() == OperandType::BRANCH) {
+      os << " offset: " << inst.argument_.branchOffset() << "(->"
+         << inst.offset_ + inst.argument_.branchOffset() << ")";
+    }
     return os;
   }
 
