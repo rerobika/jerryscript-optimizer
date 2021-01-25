@@ -23,6 +23,7 @@ static const char *basic_block_type_names[] = {
     "loop-update",
 };
 
+enum class BasicBlockFlags { NONE, BREAK_SUCC };
 enum class BasicBlockOptions { NONE, DIRECT, CONDITIONAL, LOOP };
 enum class BasicBlockType {
   NONE,
@@ -34,7 +35,7 @@ enum class BasicBlockType {
 class BasicBlock {
 public:
   BasicBlock() : BasicBlock(INVALID_BASIC_BLOCK_ID) {}
-  BasicBlock(BasicBlockID id) : id_(id) {}
+  BasicBlock(BasicBlockID id) : id_(id), flags_(0) {}
 
   auto &predecessors() { return predecessors_; }
   auto &successors() { return successors_; }
@@ -45,15 +46,29 @@ public:
   auto type() const { return type_; }
 
   bool isEmpty() const { return insts_.empty(); }
+  bool isInaccessible() const { return predecessors_.empty(); }
 
   void setType(BasicBlockType type) { type_ = type; }
 
   void addInst(InstWeakRef inst);
   void addPredecessor(BasicBlockWeakRef bb);
   void addSuccessor(BasicBlockWeakRef bb);
+
   void removeEmpty();
+  void removeInaccessible();
   bool removePredecessor(const BasicBlockID id);
   bool removeSuccessor(const BasicBlockID id);
+  void remove(const BasicBlockID id);
+  void removeAllPredecessors(const BasicBlockID id);
+  void removeAllSuccessor(const BasicBlockID id);
+
+  void addFlag(BasicBlockFlags flags) {
+    flags_ |= static_cast<uint32_t>(flags);
+  }
+
+  bool hasFlag(BasicBlockFlags flags) {
+    return (flags_ & static_cast<uint32_t>(flags)) != 0;
+  }
 
   static BasicBlockRef create(BasicBlockID id = 0) {
     LOG("Create BB: " << id);
@@ -103,6 +118,7 @@ private:
   InstWeakList insts_;
   BasicBlockID id_;
   BasicBlockType type_;
+  uint32_t flags_;
 };
 
 } // namespace optimizer

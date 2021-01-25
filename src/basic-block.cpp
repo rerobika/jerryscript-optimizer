@@ -89,6 +89,42 @@ bool BasicBlock::removeSuccessor(const BasicBlockID id) {
   return deleted;
 }
 
+void BasicBlock::remove(const BasicBlockID id) {
+  removeAllPredecessors(id);
+  removeAllSuccessor(id);
+}
+
+void BasicBlock::removeAllPredecessors(const BasicBlockID id) {
+  for (auto iter = predecessors().begin(); iter != predecessors().end();) {
+    auto pred = (*iter).lock();
+    if (pred->removeSuccessor(id)) {
+      iter = predecessors().begin();
+    } else {
+      iter++;
+    }
+  }
+}
+
+void BasicBlock::removeAllSuccessor(const BasicBlockID id) {
+  for (auto iter = successors().begin(), end = successors().end();
+       iter != end;) {
+    auto succ = (*iter).lock();
+
+    if (succ->removePredecessor(id)) {
+      iter = successors().begin();
+    } else {
+      iter++;
+    }
+  }
+}
+
+void BasicBlock::removeInaccessible() {
+  LOG("Removing BB:" << id() << " since it's inaccessible");
+  assert(isInaccessible());
+
+  removeAllSuccessor(id());
+}
+
 void BasicBlock::removeEmpty() {
   LOG("Removing BB:" << id() << " since it's empty");
   assert(isEmpty());
@@ -100,25 +136,7 @@ void BasicBlock::removeEmpty() {
     }
   }
 
-  for (auto iter = predecessors().begin(); iter != predecessors().end();) {
-    auto pred = (*iter).lock();
-    if (pred->removeSuccessor(id())) {
-      iter = predecessors().begin();
-    } else {
-      iter++;
-    }
-  }
-
-  for (auto iter = successors().begin(), end = successors().end();
-       iter != end;) {
-    auto succ = (*iter).lock();
-
-    if (succ->removePredecessor(id())) {
-      iter = successors().begin();
-    } else {
-      iter++;
-    }
-  }
+  remove(id());
 }
 
 } // namespace optimizer
