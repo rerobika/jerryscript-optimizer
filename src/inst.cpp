@@ -203,9 +203,7 @@ bool Inst::decodeCBCOpcode() {
 
   opcode_ = opcode;
 
-#if DUMP_INST
-  std::cout << *this << std::endl;
-#endif
+  LOG(*this);
 
   return true;
 }

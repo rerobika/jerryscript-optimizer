@@ -138,10 +138,7 @@ void Bytecode::decodeHeader() {
 
 void Bytecode::buildInstructions() {
   decodeHeader();
-
-#if DUMP_INST
-  std::cout << "--------- function intructions start --------" << std::endl;
-#endif
+  LOG("--------- function intructions start --------");
 
   while (hasNext()) {
     instructions().emplace_back(std::make_shared<Inst>(this));
@@ -163,9 +160,7 @@ void Bytecode::buildInstructions() {
     instructions().back()->setSize(offset() - instructions().back()->offset());
   }
 
-#if DUMP_INST
-  std::cout << "--------- function intructions end --------" << std::endl;
-#endif
+  LOG( "--------- function intructions end --------");
 }
 
 Bytecode::~Bytecode() { ecma_free_value(function_); };

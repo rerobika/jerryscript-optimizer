@@ -36,7 +36,7 @@ public:
   BasicBlock() : BasicBlock(INVALID_BASIC_BLOCK_ID) {}
   BasicBlock(BasicBlockID id) : id_(id) {}
 
-  auto &predesessors() { return predesessors_; }
+  auto &predecessors() { return predecessors_; }
   auto &successors() { return successors_; }
   auto &dominated() { return dominated_; }
   auto &dominator() { return dominator_; }
@@ -51,9 +51,12 @@ public:
   void addInst(InstWeakRef inst);
   void addPredecessor(BasicBlockWeakRef bb);
   void addSuccessor(BasicBlockWeakRef bb);
+  void removeEmpty();
+  bool removePredecessor(const BasicBlockID id);
+  bool removeSuccessor(const BasicBlockID id);
 
   static BasicBlockRef create(BasicBlockID id = 0) {
-    std::cout << "Create BB: " << id << std::endl;
+    LOG("Create BB: " << id);
     return std::make_shared<BasicBlock>(id);
   }
 
@@ -69,9 +72,9 @@ public:
     }
 
     os << "predecessors: [";
-    for (size_t i = 0; i < bb.predesessors_.size(); i++) {
-      auto pred = bb.predesessors_[i].lock();
-      os << pred->id() << (i + 1 == bb.predesessors_.size() ? "" : ", ");
+    for (size_t i = 0; i < bb.predecessors_.size(); i++) {
+      auto pred = bb.predecessors_[i].lock();
+      os << pred->id() << (i + 1 == bb.predecessors_.size() ? "" : ", ");
     }
     os << "]" << std::endl;
 
@@ -93,7 +96,7 @@ public:
   }
 
 private:
-  BasicBlockWeakList predesessors_;
+  BasicBlockWeakList predecessors_;
   BasicBlockWeakList successors_;
   BasicBlockWeakList dominated_;
   BasicBlockWeakList dominator_;

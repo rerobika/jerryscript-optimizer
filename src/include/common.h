@@ -9,6 +9,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <algorithm>
 #include <assert.h>
 #include <iostream>
 #include <memory>

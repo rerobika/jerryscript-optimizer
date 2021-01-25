@@ -18,10 +18,10 @@ class Stack {
 public:
   Stack() : Stack(0, 0) {}
   Stack(uint32_t stack_limit, uint32_t register_count)
-      : stack_limit_(stack_limit), register_count_(register_count),
+      : stack_limit_(stack_limit + 1), register_count_(register_count),
         block_result_(Value::_undefined()), result_(Value::_undefined()),
         left_(Value::_undefined()), right_(Value::_undefined()) {
-    data_.reserve(stack_limit);
+    data_.reserve(stack_limit); // TODO fix ternary
     registers_.reserve(register_count);
 
     for (uint32_t i = 0; i < register_count; i++) {

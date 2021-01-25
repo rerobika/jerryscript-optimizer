@@ -16,6 +16,8 @@
 
 namespace optimizer {
 
+using BBResult = std::pair<InstWeakRef, BasicBlockWeakRef>;
+
 class Optimizer {
 public:
   Optimizer(BytecodeRefList &list);
@@ -27,10 +29,9 @@ public:
 
 private:
   void connectSub(InstWeakRef w_last_inst, BasicBlockRef bb);
-  InstWeakRef
-  buildBasicBlock(BytecodeRef byte_code, BasicBlockRef parent_bb, Offset start,
-                  Offset end,
-                  BasicBlockOptions options = BasicBlockOptions::NONE);
+  BBResult buildBasicBlock(BytecodeRef byte_code, BasicBlockRef parent_bb,
+                           Offset start, Offset end,
+                           BasicBlockOptions options = BasicBlockOptions::NONE);
 
   BasicBlockID next() { return bb_id_++; }
 
