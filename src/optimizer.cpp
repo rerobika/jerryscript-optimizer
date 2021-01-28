@@ -16,15 +16,6 @@ Optimizer::Optimizer(BytecodeRefList &list)
   }
 }
 
-void Optimizer::connectSub(InstWeakRef w_last_inst, BasicBlockRef bb) {
-  auto last_inst = w_last_inst.lock();
-  auto last_inst_bb = last_inst->bb().lock();
-  if (last_inst_bb->id() != bb->id()) {
-    last_inst_bb->addSuccessor(bb);
-    bb->addPredecessor(last_inst_bb);
-  }
-}
-
 BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
                                     Offset start, Offset end,
                                     BasicBlockOptions options) {
@@ -72,14 +63,16 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
         auto case_1_last_inst = w_last_inst.lock();
         auto case_1_last_inst_bb = w_last_bb.lock();
 
-        if (!case_1_last_inst->isJump()) {
+        if (!case_1_last_inst->isJump() || case_1_last_inst->isContextBreak()) {
           BasicBlockRef next_bb = BasicBlock::create(next());
 
           parent_bb->addSuccessor(next_bb); /* cond -> next_bb */
           next_bb->addPredecessor(parent_bb);
 
-          next_bb->addPredecessor(case_1_last_inst_bb);
-          case_1_last_inst_bb->addSuccessor(next_bb); /* case1 -> next_bb */
+          if (!case_1_last_inst->isContextBreak()) {
+            next_bb->addPredecessor(case_1_last_inst_bb);
+            case_1_last_inst_bb->addSuccessor(next_bb); /* case1 -> next_bb */
+          }
 
           i = case_1_last_inst->offset() + case_1_last_inst->size();
           w_last_bb = next_bb;
@@ -103,12 +96,12 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
           auto case_2_last_inst_bb = w_last_bb.lock();
 
           BasicBlockRef next_bb = BasicBlock::create(next());
-          if (!case_1_last_inst_bb->hasFlag(BasicBlockFlags::BREAK_SUCC)) {
+          if (!case_1_last_inst_bb->hasFlag(BasicBlockFlags::CONTEXT_BREAK)) {
             next_bb->addPredecessor(case_1_last_inst_bb); /* case1 -> new_bb */
             case_1_last_inst_bb->addSuccessor(next_bb);
           }
 
-          if (!case_2_last_inst_bb->hasFlag(BasicBlockFlags::BREAK_SUCC)) {
+          if (!case_2_last_inst_bb->hasFlag(BasicBlockFlags::CONTEXT_BREAK)) {
             next_bb->addPredecessor(case_2_last_inst_bb); /* case2 -> new_bb */
             case_2_last_inst_bb->addSuccessor(next_bb);
           }
@@ -128,100 +121,82 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
       */
       size_t jump_target = i + jump_offset;
       if (jump_target > end) {
-        size_t jump_distance = 0;
-        for (auto riter = ++bb_ranges_.rbegin(); riter != bb_ranges_.rend();
+        size_t last_loop_test_end = SIZE_MAX;
+        for (auto riter = bb_ranges_.rbegin(); riter != bb_ranges_.rend();
              riter++) {
           auto &bb_range = *riter;
-          size_t range_start = bb_range.first.first;
-          size_t range_end = bb_range.first.second;
 
-          if (jump_target >= range_start && jump_target <= range_end) {
+          if (bb_range.second->type() == BasicBlockType::LOOP_TEST) {
+            last_loop_test_end = bb_range.first.second;
             break;
-          }
-
-          jump_distance++;
-          if (jump_target >= range_start &&
-              bb_range.second->type() == BasicBlockType::LOOP_BODY) {
-            loop_breaks_.push_back(parent_bb);
           }
         }
 
-        if (jump_distance == 0) {
-          /* Found the jump part of the conditional jump 1st case */
-          if (is_last_inst) {
-            break;
-          }
-          /* Found continue statement */
-          else {
-            loop_continues_.push_back({parent_bb, jump_target});
-            while (i < end) {
-              i += inst->size();
-              inst = byte_code->offsets()[i].lock();
+        (void)is_last_inst;
 
-              if (inst->isJump()) {
-                append_inst = false;
-                break;
-              }
-              LOG("skip: " << *inst << " due to it's dead after continue");
-            };
-            continue;
-          }
+        if (last_loop_test_end == SIZE_MAX) {
+          /* Must be the jump part of the conditional jump 1st case */
+          break;
+        }
+
+        bool is_break = jump_target > last_loop_test_end;
+        if (is_break) {
+          /* This must be a break */
+          loop_breaks_.push_back(parent_bb);
         } else {
-          w_last_bb.lock()->addFlag(BasicBlockFlags::BREAK_SUCC);
-          /* found loop break */
-          while (i < end) {
-            i += inst->size();
-            inst = byte_code->offsets()[i].lock();
-
-            if (inst->isJump()) {
-              break;
-            }
-
-            LOG("skip: " << *inst << " due to it's dead after break");
-          };
-          append_inst = false;
-          continue;
+          loop_continues_.push_back({parent_bb, jump_target});
+          /* This must be a continue */
         }
-      } else {
-        bool covered = false;
-        for (auto &bb_range : bb_ranges_) {
-          size_t range_start = bb_range.first.first;
-          if (range_start > jump_target) {
-            covered = true;
+
+        w_last_bb.lock()->addFlag(BasicBlockFlags::CONTEXT_BREAK);
+        inst->setFlag(InstFlags::CONTEXT_BREAK);
+
+        /* all upcoming instructions are dead until the next jump instruction */
+        i += inst->size();
+        while (i < end) {
+          inst = byte_code->offsets()[i].lock();
+
+          if (inst->isJump()) {
             break;
           }
-        }
+          i += inst->size();
+          LOG("skip: " << *inst << " due to it's dead after "
+                       << (is_break ? "break " : "continue"));
+        };
+        append_inst = false;
+        continue;
+      } else if (bb_ranges_.back().second->type() ==
+                 BasicBlockType::LOOP_BODY) {
+        /* found a loop body level continue */
+        loop_continues_.push_back({parent_bb, jump_target});
+        while (i < end) {
+          i += inst->size();
+          inst = byte_code->offsets()[i].lock();
 
-        if (covered) {
-          loop_continues_.push_back({parent_bb, jump_target});
-          /* found top level loop continue */
-          while (i < end) {
-            i += inst->size();
-            inst = byte_code->offsets()[i].lock();
+          if (i == jump_target) {
+            /* found for update in the same level */
+            BasicBlockRef update_bb = BasicBlock::create(next());
+            update_bb->setType(BasicBlockType::LOOP_UPDATE_FINISHED);
 
-            if (i == jump_target) {
-              /* found for update in the same level */
-              BasicBlockRef update_bb = BasicBlock::create(next());
-              update_bb->setType(BasicBlockType::LOOP_UPDATE);
+            update_bb->addPredecessor(parent_bb);
+            parent_bb->addSuccessor(update_bb); /* parent -> update */
 
-              update_bb->addPredecessor(parent_bb);
-              parent_bb->addSuccessor(update_bb); /* parent -> update */
-
-              w_last_bb = update_bb;
-              parent_bb = update_bb;
-              w_last_inst = inst;
-              /* Invalidate update creation */
-              loop_continues_.back().second = 0;
-              bb_ranges_.push_back({{i, end}, parent_bb});
-              break;
-            }
-            LOG("skip: " << *inst << " due to it's dead after continue");
-          };
-          continue;
-        }
+            w_last_bb = update_bb;
+            parent_bb = update_bb;
+            w_last_inst = inst;
+            /* Invalidate update creation */
+            loop_continues_.back().second = 0;
+            bb_ranges_.push_back({{i, end}, parent_bb});
+            break;
+          }
+          LOG("skip: " << *inst << " due to it's dead after continue");
+        };
+        continue;
       }
 
       /* found for statement */
+      BasicBlockRef last_loop_body = current_loop_body_;
+
       int32_t test_start = jump_offset;
       BasicBlockRef test_bb = BasicBlock::create(next());
       test_bb->setType(BasicBlockType::LOOP_TEST);
@@ -266,6 +241,8 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
       test_bb->addPredecessor(body_last_inst_bb); /*  b_last -> test */
 
       for (auto loop_break : loop_breaks_) {
+        LOG("Set loop break for BB:" << loop_break->id()
+                                     << " to:" << loop_break->id());
         loop_break->addSuccessor(next_bb);
         next_bb->addPredecessor(loop_break);
       }
@@ -281,8 +258,12 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
               BasicBlockRef update_bb =
                   BasicBlock::split(body_last_inst_bb, next(), update_start);
 
+              LOG("Set loop continue for BB:" << loop_continue.first->id()
+                                              << " to:" << update_bb->id());
+
               loop_continue.first->addSuccessor(update_bb);
               update_bb->addPredecessor(loop_continue.first);
+              update_bb->setType(BasicBlockType::LOOP_UPDATE_FINISHED);
 
               bb_ranges_.push_back({{update_start, body_end}, update_bb});
               break;
@@ -293,6 +274,8 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
 
       loop_breaks_.clear();
       loop_continues_.clear();
+      test_bb->setType(BasicBlockType::LOOP_TEST_FINISHED);
+      body_bb->setType(BasicBlockType::LOOP_BODY_FINISHED);
 
       parent_bb = next_bb;
       w_last_bb = next_bb;
@@ -300,6 +283,7 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
       bb_ranges_.push_back({{i, end}, parent_bb});
       continue;
     } else if (options == BasicBlockOptions::DIRECT) {
+      bb_ranges_.back().first.second = i;
       break;
     }
 

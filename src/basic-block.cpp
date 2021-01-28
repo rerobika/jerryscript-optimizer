@@ -16,7 +16,7 @@ void BasicBlock::addPredecessor(BasicBlockWeakRef bb) {
 }
 
 void BasicBlock::addSuccessor(BasicBlockWeakRef bb) {
-  LOG("Add " << bb.lock()->id() << " to " << this->id() << " as suc");
+  LOG("Add " << bb.lock()->id() << " to " << this->id() << " as succ");
   successors().push_back(bb);
 }
 
@@ -141,6 +141,7 @@ void BasicBlock::removeEmpty() {
 
 BasicBlockRef BasicBlock::split(BasicBlockRef bb, BasicBlockID id,
                                 size_t from) {
+  LOG("Split BB:" << bb->id() << " to:" << id << " from:" << from);
   BasicBlockRef new_bb = BasicBlock::create(id);
   bool copied_anything = false;
   for (auto iter = bb->insts().begin(); iter != bb->insts().end();) {

@@ -234,7 +234,12 @@ private:
   OpcodeData opcode_data_;
 };
 
-enum class InstFlags { NONE = 0, JUMP = (1 << 0), CONDITIONAL_JUMP = (1 << 1) };
+enum class InstFlags {
+  NONE = 0,
+  JUMP = (1 << 0),
+  CONDITIONAL_JUMP = (1 << 1),
+  CONTEXT_BREAK = (1 << 2)
+};
 
 class Inst {
 public:
@@ -255,6 +260,7 @@ public:
   auto bb() { return bb_; }
 
   bool isJump() const { return hasFlag(InstFlags::JUMP); }
+  bool isContextBreak() const { return hasFlag(InstFlags::CONTEXT_BREAK); }
   bool isConditionalJump() const {
     return hasFlag(InstFlags::CONDITIONAL_JUMP);
   }
