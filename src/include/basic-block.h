@@ -17,6 +17,8 @@ namespace optimizer {
 #define INVALID_BASIC_BLOCK_ID UINT32_MAX
 
 static const char *basic_block_type_names[] = {
+    "cond-case-1",
+    "cond-case-2",
     "loop-body",
     "loop-test",
     "loop-update",
@@ -25,13 +27,15 @@ static const char *basic_block_type_names[] = {
 enum class BasicBlockFlags { NONE, CONTEXT_BREAK };
 enum class BasicBlockOptions { NONE, DIRECT, CONDITIONAL, LOOP };
 enum class BasicBlockType {
-  LOOP_BODY,
-  LOOP_BODY_FINISHED,
-  LOOP_TEST,
+  CONDTITION_CASE_1,
+  CONDTITION_CASE_2,
   LOOP_TEST_FINISHED,
-  LOOP_UPDATE,
+  LOOP_BODY_FINISHED,
   LOOP_UPDATE_FINISHED,
   NONE,
+  LOOP_TEST,
+  LOOP_UPDATE,
+  LOOP_BODY,
 };
 
 class BasicBlock {
@@ -65,7 +69,7 @@ public:
   void removeAllPredecessors();
   void removeAllSuccessors();
 
-  static BasicBlockRef split(BasicBlockRef bb, BasicBlockID id, size_t from);
+  static void split(BasicBlockRef bb_from, BasicBlockRef bb_into, size_t from);
 
   void addFlag(BasicBlockFlags flags) {
     flags_ |= static_cast<uint32_t>(flags);
@@ -88,7 +92,7 @@ public:
 
     if (bb.type() != BasicBlockType::NONE) {
       os << "Type: "
-         << basic_block_type_names[static_cast<uint32_t>(bb.type()) >> 1]
+         << basic_block_type_names[static_cast<uint32_t>(bb.type())]
          << std::endl;
     }
 

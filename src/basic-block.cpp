@@ -139,16 +139,16 @@ void BasicBlock::removeEmpty() {
   remove();
 }
 
-BasicBlockRef BasicBlock::split(BasicBlockRef bb, BasicBlockID id,
-                                size_t from) {
-  LOG("Split BB:" << bb->id() << " to:" << id << " from:" << from);
-  BasicBlockRef new_bb = BasicBlock::create(id);
+void BasicBlock::split(BasicBlockRef bb_from, BasicBlockRef bb_into,
+                       size_t from) {
+  LOG("Split BB:" << bb_from->id() << " to:" << bb_into->id()
+                  << " from:" << from);
   bool copied_anything = false;
-  for (auto iter = bb->insts().begin(); iter != bb->insts().end();) {
+  for (auto iter = bb_from->insts().begin(); iter != bb_from->insts().end();) {
     auto inst = (*iter).lock();
     if (inst->offset() >= from) {
-      new_bb->addInst(inst);
-      iter = bb->insts().erase(iter);
+      bb_into->addInst(inst);
+      iter = bb_from->insts().erase(iter);
       copied_anything = true;
     } else {
       iter++;
@@ -156,18 +156,17 @@ BasicBlockRef BasicBlock::split(BasicBlockRef bb, BasicBlockID id,
   }
 
   if (copied_anything) {
-    for (auto &succ : bb->successors()) {
-      new_bb->addSuccessor(succ);
-      succ.lock()->addPredecessor(new_bb); /* all bb succs -> new_bb succs */
+    for (auto &succ : bb_from->successors()) {
+      /* all bb_from succs -> bb_into succs */
+      bb_into->addSuccessor(succ);
+      succ.lock()->addPredecessor(bb_into);
     }
 
-    bb->removeAllSuccessors();
+    bb_from->removeAllSuccessors();
 
-    new_bb->addPredecessor(bb);
-    bb->addSuccessor(new_bb); /* bb -> new_bb */
+    bb_into->addPredecessor(bb_from);
+    bb_from->addSuccessor(bb_into); /* bb_from -> bb_into */
   }
-
-  return new_bb;
 }
 
 } // namespace optimizer
