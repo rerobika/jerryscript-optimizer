@@ -139,7 +139,8 @@ public:
   }
 
   uint8_t *setLiteralPool(void *literalStart, BytecodeArguments &args) {
-    literal_start_ = reinterpret_cast<ecma_value_t *>(literalStart);
+    literal_start_ =
+        reinterpret_cast<ecma_value_t *>(literalStart) - args.registerEnd();
     size_ = args.literalEnd();
 
     return reinterpret_cast<uint8_t *>(literal_start_ + size_);

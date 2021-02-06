@@ -1020,6 +1020,8 @@ void Inst::decodeGroupOpcode() {
     break;
   }
   case VM_OC_FOR_IN_INIT: {
+    setFlag(InstFlags::JUMP);
+    setFlag(InstFlags::FOR_CONTEXT);
     setLiteralValue(stack().pop());
     stack().push(PARSER_FOR_IN_CONTEXT_STACK_ALLOCATION);
     break;
@@ -1055,12 +1057,18 @@ void Inst::decodeGroupOpcode() {
   }
 #endif /* ENABLED (JERRY_ESNEXT) */
   case VM_OC_TRY: {
+    setFlag(InstFlags::JUMP);
+    setFlag(InstFlags::TRY_BLOCK);
     break;
   }
   case VM_OC_CATCH: {
+    setFlag(InstFlags::JUMP);
+    setFlag(InstFlags::CATCH_BLOCK);
     break;
   }
   case VM_OC_FINALLY: {
+    setFlag(InstFlags::JUMP);
+    setFlag(InstFlags::FINALLY_BLOCK);
     stack().push(PARSER_FINALLY_CONTEXT_EXTRA_STACK_ALLOCATION);
     break;
   }

@@ -238,7 +238,15 @@ enum class InstFlags {
   NONE = 0,
   JUMP = (1 << 0),
   CONDITIONAL_JUMP = (1 << 1),
-  CONTEXT_BREAK = (1 << 2)
+  CONTEXT_BREAK = (1 << 2),
+  TRY_BLOCK = (1 << 2),
+  CATCH_BLOCK = (1 << 3),
+  FINALLY_BLOCK = (1 << 4),
+  FOR_IN = (1 << 5),
+  FOR_OF = (1 << 6),
+  FOR_AWAIT_OF = (1 << 7),
+
+  FOR_CONTEXT = FOR_IN | FOR_OF | FOR_AWAIT_OF,
 };
 
 class Inst {
@@ -264,6 +272,13 @@ public:
   bool isConditionalJump() const {
     return hasFlag(InstFlags::CONDITIONAL_JUMP);
   }
+  bool isTryBlock() const { return hasFlag(InstFlags::TRY_BLOCK); }
+  bool isCatchBlock() const { return hasFlag(InstFlags::CATCH_BLOCK); }
+  bool isFinallyBlock() const { return hasFlag(InstFlags::FINALLY_BLOCK); }
+  bool isForIn() const { return hasFlag(InstFlags::FOR_IN); }
+  bool isForOf() const { return hasFlag(InstFlags::FOR_OF); }
+  bool isForAwaitOf() const { return hasFlag(InstFlags::FOR_AWAIT_OF); }
+  bool isForContext() const { return hasFlag(InstFlags::FOR_CONTEXT); }
 
   bool hasFlag(InstFlags flag) const {
     return (flags_ & static_cast<uint32_t>(flag)) != 0;
