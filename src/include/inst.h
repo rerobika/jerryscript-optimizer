@@ -199,7 +199,12 @@ public:
   auto CBCopcode() const { return cbc_opcode_; }
   auto opcodeData() const { return opcode_data_; }
 
-  bool is(CBCOpcode opcode) { return cbc_opcode_ == opcode; }
+  bool is(CBCOpcode opcode) {
+    if (isExtOpcode()) {
+      opcode += 256;
+    }
+    return cbc_opcode_ == opcode;
+  }
 
   bool isExtOpcode() const { return Opcode::isExtOpcode(CBCopcode()); }
 
@@ -216,7 +221,7 @@ public:
     cbc_opcode_ = cbc_op + 256;
 
 #ifndef NDEBUG
-    if (!isExtOpcode()) {
+    if (isExtOpcode()) {
       cbc_ext_op_ = static_cast<cbc_ext_opcode_t>(cbc_op);
       cbc_op_ = CBC_END;
       group_op_ = static_cast<vm_oc_types>(opcode_data_.groupOpcode());
@@ -239,14 +244,12 @@ enum class InstFlags {
   JUMP = (1 << 0),
   CONDITIONAL_JUMP = (1 << 1),
   CONTEXT_BREAK = (1 << 2),
-  TRY_BLOCK = (1 << 2),
-  CATCH_BLOCK = (1 << 3),
-  FINALLY_BLOCK = (1 << 4),
-  FOR_IN = (1 << 5),
-  FOR_OF = (1 << 6),
-  FOR_AWAIT_OF = (1 << 7),
-
-  FOR_CONTEXT = FOR_IN | FOR_OF | FOR_AWAIT_OF,
+  TRY_BLOCK = (1 << 3),
+  CATCH_BLOCK = (1 << 4),
+  FINALLY_BLOCK = (1 << 5),
+  FOR_CONTEXT_INIT = (1 << 6),
+  FOR_CONTEXT_GET_NEXT = (1 << 7),
+  FOR_CONTEXT_HAS_NEXT = (1 << 8),
 };
 
 class Inst {
@@ -275,10 +278,13 @@ public:
   bool isTryBlock() const { return hasFlag(InstFlags::TRY_BLOCK); }
   bool isCatchBlock() const { return hasFlag(InstFlags::CATCH_BLOCK); }
   bool isFinallyBlock() const { return hasFlag(InstFlags::FINALLY_BLOCK); }
-  bool isForIn() const { return hasFlag(InstFlags::FOR_IN); }
-  bool isForOf() const { return hasFlag(InstFlags::FOR_OF); }
-  bool isForAwaitOf() const { return hasFlag(InstFlags::FOR_AWAIT_OF); }
-  bool isForContext() const { return hasFlag(InstFlags::FOR_CONTEXT); }
+  bool isForContextInit() const { return hasFlag(InstFlags::FOR_CONTEXT_INIT); }
+  bool isForContextGetNext() const {
+    return hasFlag(InstFlags::FOR_CONTEXT_GET_NEXT);
+  }
+  bool isForContextHasNext() const {
+    return hasFlag(InstFlags::FOR_CONTEXT_HAS_NEXT);
+  }
 
   bool hasFlag(InstFlags flag) const {
     return (flags_ & static_cast<uint32_t>(flag)) != 0;

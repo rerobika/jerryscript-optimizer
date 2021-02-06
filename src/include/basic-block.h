@@ -17,7 +17,7 @@ namespace optimizer {
 #define INVALID_BASIC_BLOCK_ID UINT32_MAX
 
 static const char *basic_block_type_names[] = {
-    "cond-case-1", "cond-case-2", "loop-body",   "loop-test",
+    "cond-case-1", "cond-case-2", "loop-init",   "loop-test",     "loop-body",
     "loop-update", "try-block",   "catch-block", "finally-block",
 };
 
@@ -26,10 +26,11 @@ enum class BasicBlockFlags {
   CONTEXT_BREAK = 1 << 0,
 };
 
-enum class BasicBlockOptions { NONE, DIRECT, CONDITIONAL, LOOP };
+enum class BasicBlockOptions { NONE, RETURN_ON_BACKWARD, CONDITIONAL, LOOP };
 enum class BasicBlockType {
   CONDTITION_CASE_1,
   CONDTITION_CASE_2,
+  LOOP_INIT,
   LOOP_TEST,
   LOOP_BODY,
   LOOP_UPDATE,

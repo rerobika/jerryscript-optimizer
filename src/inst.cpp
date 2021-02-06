@@ -1021,37 +1021,46 @@ void Inst::decodeGroupOpcode() {
   }
   case VM_OC_FOR_IN_INIT: {
     setFlag(InstFlags::JUMP);
-    setFlag(InstFlags::FOR_CONTEXT);
+    setFlag(InstFlags::FOR_CONTEXT_INIT);
     setLiteralValue(stack().pop());
     stack().push(PARSER_FOR_IN_CONTEXT_STACK_ALLOCATION);
     break;
   }
   case VM_OC_FOR_IN_GET_NEXT: {
+    setFlag(InstFlags::FOR_CONTEXT_GET_NEXT);
     stack().push(Value::_any());
     break;
   }
   case VM_OC_FOR_IN_HAS_NEXT: {
+    setFlag(InstFlags::FOR_CONTEXT_HAS_NEXT);
     break;
   }
 #if ENABLED(JERRY_ESNEXT)
   case VM_OC_FOR_OF_INIT: {
+    setFlag(InstFlags::JUMP);
+    setFlag(InstFlags::FOR_CONTEXT_INIT);
     setLiteralValue(stack().pop());
     stack().push(PARSER_FOR_OF_CONTEXT_STACK_ALLOCATION);
     break;
   }
   case VM_OC_FOR_OF_GET_NEXT: {
+    setFlag(InstFlags::FOR_CONTEXT_GET_NEXT);
     stack().push(Value::_any());
     break;
   }
   case VM_OC_FOR_OF_HAS_NEXT: {
+    setFlag(InstFlags::FOR_CONTEXT_HAS_NEXT);
     break;
   }
   case VM_OC_FOR_AWAIT_OF_INIT: {
+    setFlag(InstFlags::JUMP);
+    setFlag(InstFlags::FOR_CONTEXT_INIT);
     setLiteralValue(stack().pop());
     stack().push(PARSER_FOR_AWAIT_OF_CONTEXT_STACK_ALLOCATION);
     break;
   }
   case VM_OC_FOR_AWAIT_OF_HAS_NEXT: {
+    setFlag(InstFlags::FOR_CONTEXT_HAS_NEXT);
     stack().push(PARSER_TRY_CONTEXT_STACK_ALLOCATION);
     break;
   }

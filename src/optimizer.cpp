@@ -48,6 +48,122 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
     int32_t jump_offset = inst->jumpOffset();
 
     if (jump_offset > 0) {
+      if (inst->isForContextInit()) {
+        auto context_end = i + inst->jumpOffset();
+        i += inst->size();
+        auto get_next_inst = byte_code->offsets()[i].lock();
+
+        auto loop_init_bb = parent_bb;
+        auto loop_init_last_inst_bb = loop_init_bb;
+
+        BasicBlockRef loop_update_bb = BasicBlock::create(next());
+        loop_update_bb->setType(BasicBlockType::LOOP_UPDATE);
+
+        if (!get_next_inst->isForContextGetNext()) {
+          if (!get_next_inst->isJump()) {
+            assert(get_next_inst->opcode().is(CBC_EXT_CLONE_CONTEXT) ||
+                   get_next_inst->opcode().is(CBC_EXT_CLONE_FULL_CONTEXT));
+            loop_update_bb->addInst(get_next_inst);
+            get_next_inst->setBasicBlock(loop_update_bb);
+            LOG("add:" << *get_next_inst << ", to: " << loop_update_bb->id());
+
+            i += get_next_inst->size();
+            get_next_inst = byte_code->offsets()[i].lock();
+          }
+
+          if (get_next_inst->isJump()) {
+            assert(get_next_inst->jumpOffset() > 0);
+
+            auto init_offset = get_next_inst->jumpOffset();
+            loop_init_bb = BasicBlock::create(next());
+            loop_init_bb->setType(BasicBlockType::LOOP_INIT);
+
+            auto loop_init_start = i + get_next_inst->size();
+            auto loop_init_end = i + init_offset;
+
+            BBResult w_loop_init = buildBasicBlock(
+                byte_code, loop_init_bb, loop_init_start, loop_init_end - 1);
+
+            loop_init_last_inst_bb = w_last_bb.lock();
+
+            i = loop_init_end;
+            get_next_inst = byte_code->offsets()[i].lock();
+          }
+        }
+
+        assert(get_next_inst->isForContextGetNext());
+
+        loop_update_bb->addInst(get_next_inst);
+        get_next_inst->setBasicBlock(loop_update_bb);
+        LOG("add:" << *get_next_inst << ", to: " << loop_update_bb->id());
+        bb_ranges_.push_back({{i, i + get_next_inst->size()}, loop_update_bb});
+
+        BasicBlockRef loop_body_bb = BasicBlock::create(next());
+        loop_body_bb->setType(BasicBlockType::LOOP_BODY_PENDING);
+
+        auto loop_body_start = i + get_next_inst->size();
+        auto loop_body_end = context_end;
+
+        BBResult w_loop_body = buildBasicBlock(
+            byte_code, loop_body_bb, loop_body_start, loop_body_end - 1);
+
+        w_last_inst = w_loop_body.first;
+        w_last_bb = w_loop_body.second;
+
+        auto loop_body_last_inst = w_last_inst.lock();
+        auto loop_body_last_inst_bb = w_last_bb.lock();
+
+        loop_body_bb->setType(BasicBlockType::LOOP_BODY);
+
+        assert(loop_body_last_inst->isForContextHasNext());
+
+        BasicBlockRef loop_test_bb = BasicBlock::create(next());
+        loop_test_bb->setType(BasicBlockType::LOOP_TEST);
+
+        LOG("remove:" << *loop_body_last_inst
+                      << ", from: " << loop_body_last_inst_bb->id());
+        loop_body_last_inst_bb->insts().pop_back();
+        loop_test_bb->addInst(loop_body_last_inst);
+        loop_body_last_inst->setBasicBlock(loop_test_bb);
+        LOG("add:" << *loop_body_last_inst << ", to: " << loop_test_bb->id());
+        bb_ranges_.push_back(
+            {{loop_body_last_inst->offset(),
+              loop_body_last_inst->offset() + loop_body_last_inst->size()},
+             loop_test_bb});
+
+        BasicBlockRef next_bb = BasicBlock::create(next());
+
+        /* loop_init_last_inst_bb -> loop_test_bb */
+        loop_init_last_inst_bb->addSuccessor(loop_test_bb);
+        loop_test_bb->addPredecessor(loop_init_last_inst_bb);
+
+        /* loop_body_last_inst_bb -> loop_test_bb */
+        loop_body_last_inst_bb->addSuccessor(loop_test_bb);
+        loop_test_bb->addPredecessor(loop_body_last_inst_bb);
+
+        /* loop_test_bb -> loop_update_bb */
+        loop_test_bb->addSuccessor(loop_update_bb);
+        loop_update_bb->addPredecessor(loop_test_bb);
+
+        /* loop_test_bb -> next_bb */
+        loop_test_bb->addSuccessor(next_bb);
+        next_bb->addPredecessor(loop_test_bb);
+
+        /* loop_update_bb -> loop_body_bb */
+        loop_update_bb->addSuccessor(loop_body_bb);
+        loop_body_bb->addPredecessor(loop_update_bb);
+
+        i = context_end;
+        bb_ranges_.push_back({{i, end}, next_bb});
+        w_last_bb = next_bb;
+        parent_bb = next_bb;
+        continue;
+      }
+
+      if (inst->isForContextHasNext()) {
+        break;
+      }
+
       if (inst->isTryBlock()) {
         parent_bb->insts().pop_back();
         BasicBlockRef try_bb = BasicBlock::create(next());
@@ -285,8 +401,9 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
       int32_t test_start = jump_offset;
       BasicBlockRef test_bb = BasicBlock::create(next());
       test_bb->setType(BasicBlockType::LOOP_TEST_PENDING);
-      BBResult w_test = buildBasicBlock(byte_code, test_bb, i + jump_offset,
-                                        OffsetMax, BasicBlockOptions::DIRECT);
+      BBResult w_test =
+          buildBasicBlock(byte_code, test_bb, i + jump_offset, OffsetMax,
+                          BasicBlockOptions::RETURN_ON_BACKWARD);
 
       w_last_inst = w_test.first;
       w_last_bb = w_test.second;
@@ -371,7 +488,7 @@ BBResult Optimizer::buildBasicBlock(BytecodeRef byte_code, BasicBlockRef bb,
       i = test_last_inst->offset() + test_last_inst->size();
       bb_ranges_.push_back({{i, end}, parent_bb});
       continue;
-    } else if (options == BasicBlockOptions::DIRECT) {
+    } else if (options == BasicBlockOptions::RETURN_ON_BACKWARD) {
       bb_ranges_.back().first.second = i;
       break;
     }
