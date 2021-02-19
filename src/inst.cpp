@@ -1087,6 +1087,7 @@ void Inst::decodeGroupOpcode() {
   }
   case VM_OC_JUMP_AND_EXIT_CONTEXT: {
     // TODO: support
+    setFlag(InstFlags::JUMP);
     break;
   }
 #if ENABLED(JERRY_DEBUGGER)

@@ -41,6 +41,7 @@ enum class BasicBlockType {
   LOOP_TEST_PENDING,
   LOOP_UPDATE_PENDING,
   LOOP_BODY_PENDING,
+  LOOP_CONTEXT_BODY_PENDING,
 };
 
 class BasicBlock {

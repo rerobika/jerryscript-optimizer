@@ -29,6 +29,9 @@ public:
   auto &list() { return list_; }
 
 private:
+  void setLoopJumps(BasicBlockRef next_bb, BasicBlockRef body_end_bb,
+                    size_t body_end);
+
   BBResult buildBasicBlock(BytecodeRef byte_code, BasicBlockRef parent_bb,
                            Offset start, Offset end,
                            BasicBlockOptions options = BasicBlockOptions::NONE);
