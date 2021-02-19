@@ -29,6 +29,7 @@ public:
   auto &list() { return list_; }
 
 private:
+  BasicBlockRef findBB(size_t index);
   void setLoopJumps(BasicBlockRef next_bb, BasicBlockRef body_end_bb,
                     size_t body_end);
 
@@ -42,6 +43,7 @@ private:
   BytecodeRefList list_;
   std::vector<BBRange> bb_ranges_;
   std::vector<BasicBlockRef> loop_breaks_;
+  std::vector<std::pair<BasicBlockRef, Offset>> unconditional_jumps_;
   std::vector<std::pair<BasicBlockRef, Offset>> loop_continues_;
   BasicBlockRef current_loop_body_;
   BasicBlockID bb_id_;

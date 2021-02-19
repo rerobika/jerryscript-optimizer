@@ -106,8 +106,7 @@ void BasicBlock::removeAllPredecessors() {
 }
 
 void BasicBlock::removeAllSuccessors() {
-  for (auto iter = successors().begin(), end = successors().end();
-       iter != end;) {
+  for (auto iter = successors().begin(); iter != successors().end();) {
     auto succ = (*iter).lock();
 
     if (succ->removePredecessor(id())) {
