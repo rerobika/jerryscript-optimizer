@@ -21,8 +21,7 @@ namespace optimizer {
 class Inst;
 class BasicBlock;
 
-using Offset = uint32_t;
-#define OffsetMax std::numeric_limits<Offset>::max()
+#define OffsetMax std::numeric_limits<int32_t>::max()
 using BasicBlockRef = std::shared_ptr<BasicBlock>;
 using BasicBlockWeakRef = std::weak_ptr<BasicBlock>;
 using BasicBlockList = std::vector<BasicBlockRef>;
@@ -32,7 +31,7 @@ using InstRef = std::shared_ptr<Inst>;
 using InstWeakRef = std::weak_ptr<Inst>;
 using InstList = std::vector<InstRef>;
 using InstWeakList = std::vector<InstWeakRef>;
-using InstMap = std::unordered_map<Offset, InstWeakRef>;
+using InstMap = std::unordered_map<int32_t, InstWeakRef>;
 using LiteralIndex = uint16_t;
 
 class BytecodeFlags {

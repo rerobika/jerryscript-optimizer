@@ -8,7 +8,10 @@
 
 #include "basic-block.h"
 namespace optimizer {
-void BasicBlock::addInst(InstWeakRef inst) { insts().push_back(inst); }
+void BasicBlock::addInst(InstWeakRef inst) {
+  LOG("Add:" << *(inst.lock().get()) << ", to: " << this->id());
+  insts().push_back(inst);
+}
 
 void BasicBlock::addPredecessor(BasicBlockWeakRef bb) {
   LOG("Add " << bb.lock()->id() << " to " << this->id() << " as pred");
@@ -139,7 +142,7 @@ void BasicBlock::removeEmpty() {
 }
 
 void BasicBlock::split(BasicBlockRef bb_from, BasicBlockRef bb_into,
-                       size_t from) {
+                       int32_t from) {
   LOG("Split BB:" << bb_from->id() << " to:" << bb_into->id()
                   << " from:" << from);
   bool copied_anything = false;
@@ -147,6 +150,7 @@ void BasicBlock::split(BasicBlockRef bb_from, BasicBlockRef bb_into,
     auto inst = (*iter).lock();
     if (inst->offset() >= from) {
       bb_into->addInst(inst);
+      inst->setBasicBlock(bb_into);
       iter = bb_from->insts().erase(iter);
       copied_anything = true;
     } else {

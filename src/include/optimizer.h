@@ -17,7 +17,7 @@
 namespace optimizer {
 
 using BBResult = std::pair<InstWeakRef, BasicBlockWeakRef>;
-using BBRange = std::pair<std::pair<Offset, Offset>, BasicBlockRef>;
+using BBRange = std::pair<std::pair<int32_t, int32_t>, BasicBlockRef>;
 
 class Optimizer {
 public:
@@ -31,10 +31,10 @@ public:
 private:
   BasicBlockRef findBB(size_t index);
   void setLoopJumps(BasicBlockRef next_bb, BasicBlockRef body_end_bb,
-                    size_t body_end);
+                    int32_t body_end, int32_t loop_end);
 
   BBResult buildBasicBlock(BytecodeRef byte_code, BasicBlockRef parent_bb,
-                           Offset start, Offset end,
+                           int32_t start, int32_t end,
                            BasicBlockOptions options = BasicBlockOptions::NONE);
 
   BasicBlockID next() { return bb_id_++; }
@@ -42,9 +42,7 @@ private:
 private:
   BytecodeRefList list_;
   std::vector<BBRange> bb_ranges_;
-  std::vector<BasicBlockRef> loop_breaks_;
-  std::vector<std::pair<BasicBlockRef, Offset>> unconditional_jumps_;
-  std::vector<std::pair<BasicBlockRef, Offset>> loop_continues_;
+  std::vector<std::pair<InstRef, int32_t>> unknown_jumps_;
   BasicBlockRef current_loop_body_;
   BasicBlockID bb_id_;
 };

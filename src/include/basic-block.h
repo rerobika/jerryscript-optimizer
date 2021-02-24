@@ -26,7 +26,14 @@ enum class BasicBlockFlags {
   CONTEXT_BREAK = 1 << 0,
 };
 
-enum class BasicBlockOptions { NONE, RETURN_ON_BACKWARD, CONDITIONAL, LOOP };
+enum class BasicBlockOptions {
+  NONE,
+  LOOP_TEST,
+  COND_CASE_1,
+  LOOP_BODY,
+  LOOP_CONTEXT_BODY
+};
+
 enum class BasicBlockType {
   CONDTITION_CASE_1,
   CONDTITION_CASE_2,
@@ -38,10 +45,6 @@ enum class BasicBlockType {
   CATCH_BLOCK,
   FINALLY_BLOCK,
   NONE,
-  LOOP_TEST_PENDING,
-  LOOP_UPDATE_PENDING,
-  LOOP_BODY_PENDING,
-  LOOP_CONTEXT_BODY_PENDING,
 };
 
 class BasicBlock {
@@ -75,7 +78,7 @@ public:
   void removeAllPredecessors();
   void removeAllSuccessors();
 
-  static void split(BasicBlockRef bb_from, BasicBlockRef bb_into, size_t from);
+  static void split(BasicBlockRef bb_from, BasicBlockRef bb_into, int32_t from);
 
   void addFlag(BasicBlockFlags flags) {
     flags_ |= static_cast<uint32_t>(flags);

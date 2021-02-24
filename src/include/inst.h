@@ -239,6 +239,19 @@ private:
   OpcodeData opcode_data_;
 };
 
+static const char *inst_flags_strings[] = {
+    "JUMP",
+    "CONDITIONAL_JUMP",
+    "CONTEXT_BREAK",
+    "TRY_BLOCK",
+    "CATCH_BLOCK",
+    "FINALLY_BLOCK",
+    "FOR_CONTEXT_INIT",
+    "FOR_CONTEXT_GET_NEXT",
+    "FOR_CONTEXT_HAS_NEXT",
+    "DEAD",
+};
+
 enum class InstFlags {
   NONE = 0,
   JUMP = (1 << 0),
@@ -250,6 +263,7 @@ enum class InstFlags {
   FOR_CONTEXT_INIT = (1 << 6),
   FOR_CONTEXT_GET_NEXT = (1 << 7),
   FOR_CONTEXT_HAS_NEXT = (1 << 8),
+  DEAD = (1 << 9),
 };
 
 class Inst {
@@ -290,7 +304,13 @@ public:
     return (flags_ & static_cast<uint32_t>(flag)) != 0;
   }
 
-  void setFlag(InstFlags flag) { flags_ |= static_cast<uint32_t>(flag); }
+  void addFlag(InstFlags flag) {
+    if (flag != InstFlags::NONE) {
+      LOG("Add flag: " << inst_flags_strings[static_cast<uint32_t>(std::log2(static_cast<uint32_t>(flag)))]
+                 << " to inst: " << *this);
+    }
+    flags_ |= static_cast<uint32_t>(flag);
+  }
 
   int32_t jumpOffset() const {
     assert(isJump());
@@ -319,7 +339,7 @@ public:
   }
 
   void setPayload(uint32_t payload) { payload_ = payload; }
-  void setOffset(Offset offset) {
+  void setOffset(int32_t offset) {
     offset_ = offset;
     if (byteCode()->instructions().size() > 1) {
       auto &prev_inst =
@@ -343,6 +363,11 @@ public:
   void decodeGroupOpcode();
 
   friend std::ostream &operator<<(std::ostream &os, const Inst &inst) {
+    if (inst.hasFlag(InstFlags::DEAD)) {
+      os << "dead inst";
+      return os;
+    }
+
     os << "Offset: " << inst.offset_ << ": "
        << cbc_names[inst.opcode_.isExtOpcode()
                         ? inst.opcode_.CBCopcode() - 256 + CBC_END + 1
@@ -365,8 +390,8 @@ private:
   BasicBlockWeakRef bb_;
   uint32_t payload_;
   uint32_t flags_;
-  Offset offset_;
-  size_t size_;
+  int32_t offset_;
+  int32_t size_;
 };
 
 std::ostream &operator<<(std::ostream &os, const Inst &inst);
