@@ -8,6 +8,7 @@
 set(SRC
     basic-block.cpp
     bytecode.cpp
+    dominator.cpp
     inst.cpp
     ir-builder.cpp
     optimizer.cpp

@@ -56,7 +56,7 @@ public:
   auto &predecessors() { return predecessors_; }
   auto &successors() { return successors_; }
   auto &dominated() { return dominated_; }
-  auto &dominator() { return dominator_; }
+  auto &dominators() { return dominators_; }
   auto &insts() { return insts_; }
   auto id() const { return id_; }
   auto type() const { return type_; }
@@ -131,8 +131,8 @@ public:
 private:
   BasicBlockWeakList predecessors_;
   BasicBlockWeakList successors_;
-  BasicBlockWeakList dominated_;
-  BasicBlockWeakList dominator_;
+  BasicBlockWeakRef dominated_;
+  BasicBlockWeakList dominators_;
   InstWeakList insts_;
   BasicBlockID id_;
   BasicBlockType type_;

@@ -9,6 +9,7 @@
 #ifndef PASSES_H
 #define PASSES_H
 
+#include "dominator.h"
 #include "ir-builder.h"
 
 #endif // PASSES_H

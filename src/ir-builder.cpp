@@ -10,7 +10,7 @@
 
 namespace optimizer {
 
-IRBuilder::IRBuilder() : bb_id_(0) {}
+IRBuilder::IRBuilder() : Pass(), bb_id_(0) {}
 
 bool IRBuilder::run(BytecodeRef byte_code) {
   buildBasicBlocks(byte_code);
