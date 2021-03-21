@@ -7,6 +7,7 @@
  */
 
 #include "ir-builder.h"
+#include "optimizer.h"
 
 namespace optimizer {
 
@@ -14,7 +15,7 @@ IRBuilder::IRBuilder() : Pass(), bb_id_(0) {}
 
 IRBuilder::~IRBuilder() {}
 
-bool IRBuilder::run(Bytecode *byte_code) {
+bool IRBuilder::run(Optimizer *optimizer, Bytecode *byte_code) {
   byte_code_ = byte_code;
 
   findLeaders();
@@ -29,6 +30,7 @@ bool IRBuilder::run(Bytecode *byte_code) {
 
   LOG("--------- function basicblocks end --------");
 
+  optimizer->finish(PassKind::IR_BUILDER);
   byte_code->basicBlockList() = std::move(bbs_);
   return true;
 }
@@ -88,12 +90,11 @@ void IRBuilder::buildBlocks() {
   auto iter = leaders_.begin();
 
   BasicBlock *bb_start = newBB();
-  BasicBlock *bb_end = BasicBlock::create(bb_id_++);
-
-  Ins *next_leader = std::next(iter) == leaders_.end() ? nullptr : *(++iter);
-
   BasicBlock *bb = newBB();
   bb_start->addSuccessor(bb);
+  bb_start->addFlag(BasicBlockFlags::INVALID);
+
+  Ins *next_leader = std::next(iter) == leaders_.end() ? nullptr : *(++iter);
 
   bool found_jump = false;
 
@@ -115,6 +116,8 @@ void IRBuilder::buildBlocks() {
     }
   }
 
+  BasicBlock *bb_end = BasicBlock::create(bb_id_++);
+  bb_end->addFlag(BasicBlockFlags::INVALID);
   bb->addSuccessor(bb_end);
   bbs_.push_back(bb_end);
 }

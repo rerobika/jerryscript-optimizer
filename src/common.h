@@ -14,6 +14,8 @@
 #include <cmath>
 #include <iostream>
 #include <memory>
+#include <sstream>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>

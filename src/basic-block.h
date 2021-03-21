@@ -22,8 +22,8 @@ namespace optimizer {
 // };
 
 enum class BasicBlockFlags {
-  NONE,
-  CONTEXT_BREAK = 1 << 0,
+  NONE = 0,
+  INVALID = 1 << 0,
 };
 
 enum class BasicBlockOptions {
@@ -47,6 +47,8 @@ enum class BasicBlockType {
   NONE,
 };
 
+using SuccessorTraverser = std::function<void(BasicBlock *child)>;
+
 class BasicBlock {
 public:
   BasicBlock() : BasicBlock(INVALID_BASIC_BLOCK_ID) {}
@@ -61,7 +63,9 @@ public:
   auto id() const { return id_; }
   auto type() const { return type_; }
 
-  bool isValid() const { return id_ > 1; };
+  bool isValid() const {
+    return (flags_ & static_cast<uint32_t>(BasicBlockFlags::INVALID)) == 0;
+  };
 
   bool isEmpty() const { return insts_.empty(); }
   bool isInaccessible() const { return predecessors_.empty(); }
@@ -80,6 +84,12 @@ public:
   void removeAllPredecessors();
   void removeAllSuccessors();
 
+  void iterateSuccessors(SuccessorTraverser cb) {
+    for (auto bb : successors_) {
+      cb(bb);
+    }
+  }
+
   static void split(BasicBlock *bb_from, BasicBlock *bb_into, int32_t from);
 
   void addFlag(BasicBlockFlags flags) {
@@ -97,7 +107,7 @@ public:
 
   friend std::ostream &operator<<(std::ostream &os, const BasicBlock &bb) {
     os << "ID: " << bb.id()
-       << (bb.id() == 0 ? " <start> " : bb.id() == 1 ? " <end>" : "")
+       << (bb.isValid() ? "" : bb.id() == 0 ? " <start> " : " <end>")
        << std::endl;
     ;
 

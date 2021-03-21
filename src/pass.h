@@ -14,12 +14,16 @@
 
 namespace optimizer {
 
+class Optimizer;
+
+enum PassKind { NONE, IR_BUILDER, DOMINATOR };
+
 class Pass {
 public:
   Pass();
   virtual ~Pass();
 
-  virtual bool run(Bytecode *byte_code);
+  virtual bool run(Optimizer *optimizer, Bytecode *byte_code);
 };
 
 } // namespace optimizer

@@ -25,9 +25,13 @@ public:
 
   void addPass(Pass *pass) { passes_.push_back(pass); }
 
+  bool isSucceeded(PassKind pass);
+  void finish(PassKind pass);
+
 private:
   BytecodeList list_;
   std::vector<Pass *> passes_;
+  PassKind run_passes_;
 };
 
 } // namespace optimizer

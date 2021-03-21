@@ -15,23 +15,22 @@
 
 namespace optimizer {
 
+class Optimizer;
+
 class Dominator : public Pass {
 public:
   Dominator();
   ~Dominator();
 
-  virtual bool run(Bytecode *byte_code);
-  void buildTree(Bytecode *byte_code);
+  virtual bool run(Optimizer *optimizer, Bytecode *byte_code);
 
 private:
-  uint32_t depth_;
-  BasicBlockList anc_;
-  std::vector<BasicBlockList> buckets_;
-  BasicBlockList idoms_;
-  BasicBlockList labels_;
-  BasicBlockList parents_;
-  std::vector<uint32_t> semi_;
-  BasicBlockList vert_;
+  void computeDominators(BasicBlockList &bbs);
+  void computeDominated(BasicBlockList &bbs);
+
+  bool dominates(BasicBlock *who, BasicBlock *whom, BasicBlock *root);
+  void checkDominates(BasicBlockList &stack, bool &dominates, BasicBlock *who,
+                      BasicBlock *whom, BasicBlock *current);
 };
 
 } // namespace optimizer

@@ -17,12 +17,14 @@
 
 namespace optimizer {
 
+class Optimizer;
+
 class IRBuilder : public Pass {
 public:
   IRBuilder();
   ~IRBuilder();
 
-  virtual bool run(Bytecode *byte_code);
+  virtual bool run(Optimizer *optimizer, Bytecode *byte_code);
 
 private:
   void findLeaders();

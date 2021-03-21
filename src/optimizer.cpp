@@ -11,7 +11,8 @@
 
 namespace optimizer {
 
-Optimizer::Optimizer(BytecodeList &list) : list_(list) {}
+Optimizer::Optimizer(BytecodeList &list)
+    : list_(list), run_passes_(PassKind::NONE) {}
 
 Optimizer::~Optimizer() {
   for (auto pass : passes_) {
@@ -22,13 +23,19 @@ Optimizer::~Optimizer() {
 bool Optimizer::run() {
   for (auto &it : list_) {
     for (auto pass : passes_) {
-      if (!pass->run(it)) {
+      if (!pass->run(this, it)) {
         return false;
       }
     }
   }
 
   return true;
+}
+
+bool Optimizer::isSucceeded(PassKind pass) { return (run_passes_ & pass) != 0; }
+
+void Optimizer::finish(PassKind pass) {
+  run_passes_ = static_cast<PassKind>(run_passes_ | pass);
 }
 
 } // namespace optimizer
