@@ -14,6 +14,12 @@ extern "C" {
 
 namespace optimizer {
 
+SnapshotReadResult::~SnapshotReadResult() {
+  for (auto it : list_) {
+    delete it;
+  }
+}
+
 SnapshotReadWriter::SnapshotReadWriter(std::string &snapshot)
     : snapshot_(snapshot) {
   jerry_init(JERRY_INIT_SHOW_OPCODES);
@@ -24,7 +30,7 @@ SnapshotReadWriter::~SnapshotReadWriter() { jerry_cleanup(); }
 
 SnapshotReadResult SnapshotReadWriter::read() {
   size_t number_of_funcs = Bytecode::countFunctions(snapshot());
-  BytecodeRefList function_table;
+  BytecodeList function_table;
 
   for (size_t i = 0; i < number_of_funcs; i++) {
     jerry_value_t function = jerry_load_function_snapshot(
@@ -54,7 +60,7 @@ SnapshotReadResult SnapshotReadWriter::read() {
                           function_list.end());
   }
 
-  return {std::move(function_table)};
+  return {function_table};
 }
 
 SnapshotWriteResult SnapshotReadWriter::write(std::string &path) {

@@ -16,10 +16,10 @@ namespace optimizer {
 
 #define INVALID_BASIC_BLOCK_ID UINT32_MAX
 
-static const char *basic_block_type_names[] = {
-    "cond-case-1", "cond-case-2", "loop-init",   "loop-test",     "loop-body",
-    "loop-update", "try-block",   "catch-block", "finally-block",
-};
+// static const char *basic_block_type_names[] = {
+//     "cond-case-1", "cond-case-2", "loop-init",   "loop-test", "loop-body",
+//     "loop-update", "try-block",   "catch-block", "finally-block",
+// };
 
 enum class BasicBlockFlags {
   NONE,
@@ -57,18 +57,20 @@ public:
   auto &successors() { return successors_; }
   auto &dominated() { return dominated_; }
   auto &dominators() { return dominators_; }
-  auto &insts() { return insts_; }
+  auto &insns() { return insts_; }
   auto id() const { return id_; }
   auto type() const { return type_; }
+
+  bool isValid() const { return id_ > 1; };
 
   bool isEmpty() const { return insts_.empty(); }
   bool isInaccessible() const { return predecessors_.empty(); }
 
   void setType(BasicBlockType type) { type_ = type; }
 
-  void addInst(InstWeakRef inst);
-  void addPredecessor(BasicBlockWeakRef bb);
-  void addSuccessor(BasicBlockWeakRef bb);
+  void addIns(Ins *inst);
+  void addPredecessor(BasicBlock *bb);
+  void addSuccessor(BasicBlock *bb);
 
   void removeEmpty();
   void removeInaccessible();
@@ -78,7 +80,7 @@ public:
   void removeAllPredecessors();
   void removeAllSuccessors();
 
-  static void split(BasicBlockRef bb_from, BasicBlockRef bb_into, int32_t from);
+  static void split(BasicBlock *bb_from, BasicBlock *bb_into, int32_t from);
 
   void addFlag(BasicBlockFlags flags) {
     flags_ |= static_cast<uint32_t>(flags);
@@ -88,9 +90,9 @@ public:
     return (flags_ & static_cast<uint32_t>(flags)) != 0;
   }
 
-  static BasicBlockRef create(BasicBlockID id = 0) {
+  static BasicBlock *create(BasicBlockID id = 0) {
     LOG("Create BB: " << id);
-    return std::make_shared<BasicBlock>(id);
+    return new BasicBlock(id);
   }
 
   friend std::ostream &operator<<(std::ostream &os, const BasicBlock &bb) {
@@ -99,14 +101,15 @@ public:
        << std::endl;
     ;
 
-    if (bb.type() != BasicBlockType::NONE) {
-      os << "Type: " << basic_block_type_names[static_cast<uint32_t>(bb.type())]
-         << std::endl;
-    }
+    // if (bb.type() != BasicBlockType::NONE) {
+    //   os << "Type: " <<
+    //   basic_block_type_names[static_cast<uint32_t>(bb.type())]
+    //      << std::endl;
+    // }
 
     os << "predecessors: [";
     for (size_t i = 0; i < bb.predecessors_.size(); i++) {
-      auto pred = bb.predecessors_[i].lock();
+      auto pred = bb.predecessors_[i];
       os << pred->id() << (i + 1 == bb.predecessors_.size() ? "" : ", ");
     }
     os << "]" << std::endl;
@@ -114,13 +117,13 @@ public:
     os << "instructions:" << std::endl;
 
     for (auto &w_inst : bb.insts_) {
-      auto inst = w_inst.lock();
+      auto inst = w_inst;
       os << *inst << std::endl;
     }
 
     os << "successors: [";
     for (size_t i = 0; i < bb.successors_.size(); i++) {
-      auto succ = bb.successors_[i].lock();
+      auto succ = bb.successors_[i];
       os << succ->id() << (i + 1 == bb.successors_.size() ? "" : ", ");
     }
     os << "]" << std::endl;
@@ -129,11 +132,11 @@ public:
   }
 
 private:
-  BasicBlockWeakList predecessors_;
-  BasicBlockWeakList successors_;
-  BasicBlockWeakRef dominated_;
-  BasicBlockWeakList dominators_;
-  InstWeakList insts_;
+  BasicBlockList predecessors_;
+  BasicBlockList successors_;
+  BasicBlock *dominated_;
+  BasicBlockList dominators_;
+  InstList insts_;
   BasicBlockID id_;
   BasicBlockType type_;
   uint32_t flags_;

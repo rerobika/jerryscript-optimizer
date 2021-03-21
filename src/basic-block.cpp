@@ -8,28 +8,31 @@
 
 #include "basic-block.h"
 namespace optimizer {
-void BasicBlock::addInst(InstWeakRef inst) {
-  LOG("Add:" << *(inst.lock().get()) << ", to: " << this->id());
-  insts().push_back(inst);
+void BasicBlock::addIns(Ins *inst) {
+  LOG("Add:" << *inst << ", to: " << this->id());
+  insns().push_back(inst);
+  inst->setBasicBlock(this);
 }
 
-void BasicBlock::addPredecessor(BasicBlockWeakRef bb) {
-  LOG("Add " << bb.lock()->id() << " to " << this->id() << " as pred");
+void BasicBlock::addPredecessor(BasicBlock *bb) {
+  LOG("Add " << bb->id() << " to " << this->id() << " as pred");
   predecessors().push_back(bb);
+  bb->successors().push_back(this);
 }
 
-void BasicBlock::addSuccessor(BasicBlockWeakRef bb) {
-  LOG("Add " << bb.lock()->id() << " to " << this->id() << " as succ");
+void BasicBlock::addSuccessor(BasicBlock *bb) {
+  LOG("Add " << bb->id() << " to " << this->id() << " as succ");
   successors().push_back(bb);
+  bb->predecessors().push_back(this);
 }
 
 bool BasicBlock::removePredecessor(const BasicBlockID id) {
-  BasicBlockWeakRef pred;
+  BasicBlock *pred = nullptr;
   bool deleted = false;
   predecessors().erase(
       std::remove_if(predecessors().begin(), predecessors().end(),
-                     [id, &pred, &deleted, this](BasicBlockWeakRef bb) {
-                       if (bb.lock()->id() == id) {
+                     [id, &pred, &deleted, this](BasicBlock *bb) {
+                       if (bb->id() == id) {
                          pred = bb;
                          LOG("Remove pred:" << id << " from bb:" << this->id());
                          deleted = true;
@@ -38,32 +41,32 @@ bool BasicBlock::removePredecessor(const BasicBlockID id) {
                        return false;
                      }),
       predecessors().end());
-  if (!pred.expired()) {
-    BasicBlockID pred_id = pred.lock()->id();
-    pred.lock()->successors().erase(
-        std::remove_if(
-            pred.lock()->successors().begin(), pred.lock()->successors().end(),
-            [pred_id, &deleted, this](BasicBlockWeakRef bb) {
-              if (bb.lock()->id() == this->id()) {
-                LOG("Remove succ:" << this->id() << " from bb:" << pred_id);
-                deleted = true;
-                return true;
-              }
-              return false;
-            }),
-        pred.lock()->successors().end());
+  if (pred != nullptr) {
+    BasicBlockID pred_id = pred->id();
+    pred->successors().erase(
+        std::remove_if(pred->successors().begin(), pred->successors().end(),
+                       [pred_id, &deleted, this](BasicBlock *bb) {
+                         if (bb->id() == this->id()) {
+                           LOG("Remove succ:" << this->id()
+                                              << " from bb:" << pred_id);
+                           deleted = true;
+                           return true;
+                         }
+                         return false;
+                       }),
+        pred->successors().end());
   }
 
   return deleted;
 }
 
 bool BasicBlock::removeSuccessor(const BasicBlockID id) {
-  BasicBlockWeakRef succ;
+  BasicBlock *succ;
   bool deleted = false;
   successors().erase(
       std::remove_if(successors().begin(), successors().end(),
-                     [id, &succ, &deleted, this](BasicBlockWeakRef bb) {
-                       if (bb.lock()->id() == id) {
+                     [id, &succ, &deleted, this](BasicBlock *bb) {
+                       if (bb->id() == id) {
                          succ = bb;
                          LOG("Remove succ:" << id << " from bb:" << this->id());
                          deleted = true;
@@ -72,13 +75,12 @@ bool BasicBlock::removeSuccessor(const BasicBlockID id) {
                        return false;
                      }),
       successors().end());
-  if (!succ.expired()) {
-    BasicBlockID succ_id = succ.lock()->id();
-    succ.lock()->predecessors().erase(
-        std::remove_if(succ.lock()->predecessors().begin(),
-                       succ.lock()->predecessors().end(),
-                       [succ_id, &deleted, this](BasicBlockWeakRef bb) {
-                         if (bb.lock()->id() == this->id()) {
+  if (succ != nullptr) {
+    BasicBlockID succ_id = succ->id();
+    succ->predecessors().erase(
+        std::remove_if(succ->predecessors().begin(), succ->predecessors().end(),
+                       [succ_id, &deleted, this](BasicBlock *bb) {
+                         if (bb->id() == this->id()) {
                            LOG("Remove pred:" << this->id()
                                               << " from bb:" << succ_id);
                            deleted = true;
@@ -86,7 +88,7 @@ bool BasicBlock::removeSuccessor(const BasicBlockID id) {
                          }
                          return false;
                        }),
-        succ.lock()->predecessors().end());
+        succ->predecessors().end());
   }
 
   return deleted;
@@ -99,7 +101,7 @@ void BasicBlock::remove() {
 
 void BasicBlock::removeAllPredecessors() {
   for (auto iter = predecessors().begin(); iter != predecessors().end();) {
-    auto pred = (*iter).lock();
+    auto pred = (*iter);
     if (pred->removeSuccessor(id())) {
       iter = predecessors().begin();
     } else {
@@ -110,7 +112,7 @@ void BasicBlock::removeAllPredecessors() {
 
 void BasicBlock::removeAllSuccessors() {
   for (auto iter = successors().begin(); iter != successors().end();) {
-    auto succ = (*iter).lock();
+    auto succ = (*iter);
 
     if (succ->removePredecessor(id())) {
       iter = successors().begin();
@@ -133,25 +135,25 @@ void BasicBlock::removeEmpty() {
 
   for (auto pred : predecessors()) {
     for (auto succ : successors()) {
-      pred.lock()->addSuccessor(succ);
-      succ.lock()->addPredecessor(pred);
+      pred->addSuccessor(succ);
+      succ->addPredecessor(pred);
     }
   }
 
   remove();
 }
 
-void BasicBlock::split(BasicBlockRef bb_from, BasicBlockRef bb_into,
-                       int32_t from) {
+void BasicBlock::split(BasicBlock *bb_from, BasicBlock *bb_into, int32_t from) {
   LOG("Split BB:" << bb_from->id() << " to:" << bb_into->id()
                   << " from:" << from);
   bool copied_anything = false;
-  for (auto iter = bb_from->insts().begin(); iter != bb_from->insts().end();) {
-    auto inst = (*iter).lock();
+
+  for (auto iter = bb_from->insns().begin(); iter != bb_from->insns().end();) {
+    auto inst = (*iter);
     if (inst->offset() >= from) {
-      bb_into->addInst(inst);
+      bb_into->addIns(inst);
       inst->setBasicBlock(bb_into);
-      iter = bb_from->insts().erase(iter);
+      iter = bb_from->insns().erase(iter);
       copied_anything = true;
     } else {
       iter++;
@@ -162,7 +164,7 @@ void BasicBlock::split(BasicBlockRef bb_from, BasicBlockRef bb_into,
     for (auto &succ : bb_from->successors()) {
       /* all bb_from succs -> bb_into succs */
       bb_into->addSuccessor(succ);
-      succ.lock()->addPredecessor(bb_into);
+      succ->addPredecessor(bb_into);
     }
 
     bb_from->removeAllSuccessors();

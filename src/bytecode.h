@@ -18,21 +18,14 @@ extern "C" {
 
 namespace optimizer {
 
-class Inst;
+class Ins;
 class BasicBlock;
 
-#define OffsetMax std::numeric_limits<int32_t>::max()
-using BasicBlockRef = std::shared_ptr<BasicBlock>;
-using BasicBlockWeakRef = std::weak_ptr<BasicBlock>;
-using BasicBlockList = std::vector<BasicBlockRef>;
-using BasicBlockWeakList = std::vector<BasicBlockWeakRef>;
-using BasicBlockID = uint32_t;
-using InstRef = std::shared_ptr<Inst>;
-using InstWeakRef = std::weak_ptr<Inst>;
-using InstList = std::vector<InstRef>;
-using InstWeakList = std::vector<InstWeakRef>;
-using InstMap = std::unordered_map<int32_t, InstWeakRef>;
+using BasicBlockList = std::vector<BasicBlock *>;
+using InstList = std::vector<Ins *>;
+using OffsetMap = std::unordered_map<int32_t, Ins *>;
 using LiteralIndex = uint16_t;
+using BasicBlockID = uint32_t;
 
 class BytecodeFlags {
 public:
@@ -151,9 +144,7 @@ private:
 };
 
 class Bytecode;
-using BytecodeRef = std::shared_ptr<Bytecode>;
-using BytecodeWeakRef = std::weak_ptr<Bytecode>;
-using BytecodeRefList = std::vector<BytecodeRef>;
+using BytecodeList = std::vector<Bytecode *>;
 
 class Bytecode {
 public:
@@ -171,8 +162,10 @@ public:
   auto literalPool() const { return literal_pool_; }
   auto &stack() { return stack_; }
   auto &instructions() { return instructions_; }
-  auto &offsets() { return offsets_; }
+  auto &offsetToInst() { return inst_to_offset_; }
   auto &basicBlockList() { return bb_list_; }
+
+  Ins *insAt(int32_t offset) { return offsetToInst().find(offset)->second; }
 
   size_t compiledCodesize() const {
     return compiledCode()->size << JMEM_ALIGNMENT_LOG;
@@ -188,9 +181,8 @@ public:
   };
 
   static size_t countFunctions(std::string snapshot);
-  static BytecodeRefList readFunctions(ecma_value_t function);
-  static void readSubFunctions(BytecodeRefList &functions,
-                               BytecodeRef byte_code);
+  static BytecodeList readFunctions(ecma_value_t function);
+  static void readSubFunctions(BytecodeList &functions, Bytecode *byte_code);
 
   uint32_t offset() { return byte_code_ - byte_code_start_; }
 
@@ -215,7 +207,7 @@ private:
   LiteralPool literal_pool_;
   Stack stack_;
   InstList instructions_;
-  InstMap offsets_;
+  OffsetMap inst_to_offset_;
   BasicBlockList bb_list_;
 };
 

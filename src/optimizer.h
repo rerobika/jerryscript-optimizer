@@ -17,7 +17,7 @@ namespace optimizer {
 
 class Optimizer {
 public:
-  Optimizer(BytecodeRefList &list);
+  Optimizer(BytecodeList &list);
   ~Optimizer();
 
   virtual bool run();
@@ -26,7 +26,7 @@ public:
   void addPass(Pass *pass) { passes_.push_back(pass); }
 
 private:
-  BytecodeRefList list_;
+  BytecodeList list_;
   std::vector<Pass *> passes_;
 };
 

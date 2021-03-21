@@ -15,18 +15,18 @@ Dominator::Dominator() : Pass() {}
 
 Dominator::~Dominator() {}
 
-bool Dominator::run(BytecodeRef byte_code) { return true; }
+bool Dominator::run(Bytecode *byte_code) { return true; }
 
-void Dominator::buildTree(BytecodeRef byte_code) {
-  BasicBlockList &bbs = byte_code->basicBlockList();
+void Dominator::buildTree(Bytecode *byte_code) {
+  // BasicBlockList &bbs = byte_code->basicBlockList();
 
-  for (auto &bb : bbs) {
-    bb->dominated = nullptr;
-    bb->dominators().clear();
-  }
+  // for (auto &bb : bbs) {
+  //   bb->dominated = nullptr;
+  //   bb->dominators().clear();
+  // }
 
-  ASSERT(bbs.size() >= 2);
-  ASSERT(bbs[0]->)
+  // ASSERT(bbs.size() >= 2);
+  // ASSERT(bbs[0]->)
 }
 
 } // namespace optimizer

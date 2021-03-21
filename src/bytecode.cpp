@@ -7,6 +7,7 @@
  */
 
 #include "bytecode.h"
+#include "basic-block.h"
 #include "inst.h"
 
 extern "C" {
@@ -35,7 +36,7 @@ Bytecode::Bytecode(ecma_compiled_code_t *compiled_code)
   buildInstructions();
 }
 
-void Bytecode::readSubFunctions(BytecodeRefList &list, BytecodeRef byte_code) {
+void Bytecode::readSubFunctions(BytecodeList &list, Bytecode *byte_code) {
   if (!byte_code->flags().isFunction()) {
     return;
   }
@@ -46,8 +47,9 @@ void Bytecode::readSubFunctions(BytecodeRefList &list, BytecodeRef byte_code) {
         ecma_compiled_code_t, byte_code->literalPool().literalStart()[i]);
 
     if (bytecode_literal_p != byte_code->compiledCode()) {
-      list.emplace_back(std::make_shared<Bytecode>(bytecode_literal_p));
-      readSubFunctions(list, list.back());
+      Bytecode *sub_byte_code = new Bytecode(bytecode_literal_p);
+      list.push_back(sub_byte_code);
+      readSubFunctions(list, sub_byte_code);
     }
   }
 }
@@ -66,11 +68,12 @@ size_t Bytecode::countFunctions(std::string snapshot) {
   return header_p->number_of_funcs;
 }
 
-BytecodeRefList Bytecode::readFunctions(ecma_value_t function) {
-  BytecodeRefList list;
+BytecodeList Bytecode::readFunctions(ecma_value_t function) {
+  BytecodeList list;
 
-  list.emplace_back(std::make_shared<Bytecode>(function));
-  readSubFunctions(list, list.back());
+  Bytecode *byte_code = new Bytecode(function);
+  list.push_back(byte_code);
+  readSubFunctions(list, byte_code);
 
   return list;
 }
@@ -141,16 +144,17 @@ void Bytecode::buildInstructions() {
   LOG("--------- function intructions start --------");
 
   while (hasNext()) {
-    instructions().emplace_back(std::make_shared<Inst>(this));
-    auto &inst = instructions().back();
+    Ins *inst = new Ins(this);
+    instructions().push_back(inst);
 
     if (!inst->decodeCBCOpcode()) {
+      delete inst;
       instructions().pop_back();
       break;
     }
     inst->decodeArguments();
     inst->decodeGroupOpcode();
-    offsets().insert({inst->offset(), inst});
+    offsetToInst().insert({inst->offset(), inst});
   }
 
   auto &inst = instructions().back();
@@ -160,9 +164,20 @@ void Bytecode::buildInstructions() {
     instructions().back()->setSize(offset() - instructions().back()->offset());
   }
 
-  LOG( "--------- function intructions end --------");
+  LOG("--------- function intructions end --------");
 }
 
-Bytecode::~Bytecode() { ecma_free_value(function_); };
+Bytecode::~Bytecode() {
+  for (auto &bb : bb_list_) {
+    delete bb;
+  }
+
+  for (auto ins : instructions_)
+  {
+    delete ins;
+  }
+
+  ecma_free_value(function_);
+};
 
 } // namespace optimizer

@@ -17,33 +17,23 @@
 
 namespace optimizer {
 
-using BBResult = std::pair<InstWeakRef, BasicBlockWeakRef>;
-using BBRange = std::pair<std::pair<int32_t, int32_t>, BasicBlockRef>;
-
 class IRBuilder : public Pass {
 public:
   IRBuilder();
   ~IRBuilder();
 
-  virtual bool run(BytecodeRef byte_code);
+  virtual bool run(Bytecode *byte_code);
 
 private:
-  void buildBasicBlocks(BytecodeRef byte_code);
-
-  BasicBlockRef findBB(size_t index);
-  void setLoopJumps(BasicBlockRef next_bb, BasicBlockRef body_end_bb,
-                    int32_t body_end, int32_t loop_end);
-
-  BBResult buildBasicBlock(BytecodeRef byte_code, BasicBlockRef parent_bb,
-                           int32_t start, int32_t end,
-                           BasicBlockOptions options = BasicBlockOptions::NONE);
-
-  BasicBlockID next() { return bb_id_++; }
+  void findLeaders();
+  void buildBlocks();
+  void connectBlocks();
+  BasicBlock *newBB();
 
 private:
-  std::vector<BBRange> bb_ranges_;
-  std::vector<std::pair<InstRef, int32_t>> unknown_jumps_;
-  BasicBlockRef current_loop_body_;
+  std::vector<Ins *> leaders_;
+  std::vector<BasicBlock *> bbs_;
+  Bytecode *byte_code_;
   BasicBlockID bb_id_;
 };
 

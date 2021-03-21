@@ -20,8 +20,8 @@ public:
   Dominator();
   ~Dominator();
 
-  virtual bool run(BytecodeRef byte_code);
-  void buildTree(BytecodeRef byte_code);
+  virtual bool run(Bytecode *byte_code);
+  void buildTree(Bytecode *byte_code);
 
 private:
   uint32_t depth_;

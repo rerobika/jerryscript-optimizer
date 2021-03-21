@@ -19,7 +19,7 @@ public:
   Pass();
   virtual ~Pass();
 
-  virtual bool run(BytecodeRef byte_code);
+  virtual bool run(Bytecode *byte_code);
 };
 
 } // namespace optimizer

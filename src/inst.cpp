@@ -46,7 +46,7 @@ uint16_t decode_table[] = {CBC_OPCODE_LIST CBC_EXT_OPCODE_LIST};
 const char *cbc_names[] = {CBC_OPCODE_LIST CBC_EXT_OPCODE_LIST};
 #undef CBC_OPCODE
 
-LiteralIndex Inst::decodeLiteralIndex() {
+LiteralIndex Ins::decodeLiteralIndex() {
   LiteralIndex literal_index = byteCode()->next();
 
   if (literal_index >= byteCode()->args().encodingLimit()) {
@@ -58,7 +58,7 @@ LiteralIndex Inst::decodeLiteralIndex() {
   return literal_index;
 }
 
-Literal Inst::decodeTemplateLiteral() {
+Literal Ins::decodeTemplateLiteral() {
   LiteralIndex index = decodeLiteralIndex();
   assert(index >= byteCode()->args().constLiteralEnd() &&
          index < byteCode()->args().literalEnd());
@@ -66,7 +66,7 @@ Literal Inst::decodeTemplateLiteral() {
   return {LiteralType::TEMPLATE, index};
 }
 
-Literal Inst::decodeStringLiteral() {
+Literal Ins::decodeStringLiteral() {
   LiteralIndex index = decodeLiteralIndex();
   assert(index >= byteCode()->args().registerEnd() &&
          index < byteCode()->args().identEnd());
@@ -74,12 +74,12 @@ Literal Inst::decodeStringLiteral() {
   return {LiteralType::IDENT, index};
 }
 
-Literal Inst::decodeLiteral() {
+Literal Ins::decodeLiteral() {
   LiteralIndex index = decodeLiteralIndex();
   return decodeLiteral(index);
 }
 
-Literal Inst::decodeLiteral(LiteralIndex index) {
+Literal Ins::decodeLiteral(LiteralIndex index) {
   LiteralType type;
 
   if (index < byteCode()->args().argumentEnd()) {
@@ -98,7 +98,7 @@ Literal Inst::decodeLiteral(LiteralIndex index) {
   return {type, index};
 }
 
-void Inst::decodeArguments() {
+void Ins::decodeArguments() {
   Argument argument(opcode().opcodeData().operands());
 
   stack().resetOperands();
@@ -183,7 +183,7 @@ void Inst::decodeArguments() {
   argument_ = argument;
 }
 
-bool Inst::decodeCBCOpcode() {
+bool Ins::decodeCBCOpcode() {
   setOffset(byteCode()->offset());
   CBCOpcode cbc_op = byteCode()->next();
   Opcode opcode(cbc_op);
@@ -208,7 +208,7 @@ bool Inst::decodeCBCOpcode() {
   return true;
 }
 
-void Inst::processPut() {
+void Ins::processPut() {
   if (opcode().opcodeData().isPutIdent()) {
     LiteralIndex literal_index = decodeLiteralIndex();
 
@@ -245,7 +245,7 @@ void Inst::processPut() {
   }
 }
 
-void Inst::decodeGroupOpcode() {
+void Ins::decodeGroupOpcode() {
   auto groupOpcode = opcode().opcodeData().groupOpcode();
   switch (groupOpcode) {
 
@@ -907,6 +907,7 @@ void Inst::decodeGroupOpcode() {
   }
   case VM_OC_BRANCH_IF_STRICT_EQUAL: {
     setLiteralValue(stack().pop());
+    addFlag(InstFlags::JUMP);
     addFlag(InstFlags::CONDITIONAL_JUMP);
     break;
   }
@@ -1021,63 +1022,62 @@ void Inst::decodeGroupOpcode() {
   }
   case VM_OC_FOR_IN_INIT: {
     addFlag(InstFlags::JUMP);
-    addFlag(InstFlags::FOR_CONTEXT_INIT);
+    addFlag(InstFlags::CONDITIONAL_JUMP);
     setLiteralValue(stack().pop());
     stack().push(PARSER_FOR_IN_CONTEXT_STACK_ALLOCATION);
     break;
   }
   case VM_OC_FOR_IN_GET_NEXT: {
-    addFlag(InstFlags::FOR_CONTEXT_GET_NEXT);
     stack().push(Value::_any());
     break;
   }
   case VM_OC_FOR_IN_HAS_NEXT: {
-    addFlag(InstFlags::FOR_CONTEXT_HAS_NEXT);
+    addFlag(InstFlags::JUMP);
+    addFlag(InstFlags::CONDITIONAL_JUMP);
     break;
   }
 #if ENABLED(JERRY_ESNEXT)
   case VM_OC_FOR_OF_INIT: {
     addFlag(InstFlags::JUMP);
-    addFlag(InstFlags::FOR_CONTEXT_INIT);
+    addFlag(InstFlags::CONDITIONAL_JUMP);
     setLiteralValue(stack().pop());
     stack().push(PARSER_FOR_OF_CONTEXT_STACK_ALLOCATION);
     break;
   }
   case VM_OC_FOR_OF_GET_NEXT: {
-    addFlag(InstFlags::FOR_CONTEXT_GET_NEXT);
     stack().push(Value::_any());
     break;
   }
   case VM_OC_FOR_OF_HAS_NEXT: {
-    addFlag(InstFlags::FOR_CONTEXT_HAS_NEXT);
+    addFlag(InstFlags::JUMP);
+    addFlag(InstFlags::CONDITIONAL_JUMP);
     break;
   }
   case VM_OC_FOR_AWAIT_OF_INIT: {
     addFlag(InstFlags::JUMP);
-    addFlag(InstFlags::FOR_CONTEXT_INIT);
+    addFlag(InstFlags::CONDITIONAL_JUMP);
     setLiteralValue(stack().pop());
     stack().push(PARSER_FOR_AWAIT_OF_CONTEXT_STACK_ALLOCATION);
     break;
   }
   case VM_OC_FOR_AWAIT_OF_HAS_NEXT: {
-    addFlag(InstFlags::FOR_CONTEXT_HAS_NEXT);
     stack().push(PARSER_TRY_CONTEXT_STACK_ALLOCATION);
     break;
   }
 #endif /* ENABLED (JERRY_ESNEXT) */
   case VM_OC_TRY: {
     addFlag(InstFlags::JUMP);
-    addFlag(InstFlags::TRY_BLOCK);
+    addFlag(InstFlags::TRY_START);
     break;
   }
   case VM_OC_CATCH: {
     addFlag(InstFlags::JUMP);
-    addFlag(InstFlags::CATCH_BLOCK);
+    addFlag(InstFlags::TRY_CATCH);
     break;
   }
   case VM_OC_FINALLY: {
     addFlag(InstFlags::JUMP);
-    addFlag(InstFlags::FINALLY_BLOCK);
+    addFlag(InstFlags::TRY_FINALLY);
     stack().push(PARSER_FINALLY_CONTEXT_EXTRA_STACK_ALLOCATION);
     break;
   }

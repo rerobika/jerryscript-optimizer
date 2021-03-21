@@ -16,8 +16,9 @@ namespace optimizer {
 
 class SnapshotReadResult {
 public:
-  SnapshotReadResult(BytecodeRefList &&list) : list_(list), error_("") {}
+  SnapshotReadResult(BytecodeList &list) : list_(std::move(list)), error_("") {}
   SnapshotReadResult(std::string error) : error_(error) {}
+  ~SnapshotReadResult();
 
   auto &list() { return list_; }
   auto error() const { return error_; }
@@ -25,7 +26,7 @@ public:
   bool failed() { return error_.length() != 0; }
 
 private:
-  BytecodeRefList list_;
+  BytecodeList list_;
   std::string error_;
 };
 

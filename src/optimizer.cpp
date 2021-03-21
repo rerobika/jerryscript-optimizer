@@ -11,7 +11,7 @@
 
 namespace optimizer {
 
-Optimizer::Optimizer(BytecodeRefList &list) : list_(std::move(list)) {}
+Optimizer::Optimizer(BytecodeList &list) : list_(list) {}
 
 Optimizer::~Optimizer() {
   for (auto pass : passes_) {

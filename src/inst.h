@@ -256,8 +256,11 @@ enum class InstFlags {
   NONE = 0,
   JUMP = (1 << 0),
   CONDITIONAL_JUMP = (1 << 1),
+  TRY_START = (1 << 2),
+  TRY_CATCH = (1 << 3),
+  TRY_FINALLY = (1 << 4),
+
   CONTEXT_BREAK = (1 << 2),
-  TRY_BLOCK = (1 << 3),
   CATCH_BLOCK = (1 << 4),
   FINALLY_BLOCK = (1 << 5),
   FOR_CONTEXT_INIT = (1 << 6),
@@ -266,30 +269,36 @@ enum class InstFlags {
   DEAD = (1 << 9),
 };
 
-class Inst {
+class Ins {
 public:
-  Inst(Bytecode *byte_code)
+  Ins(Bytecode *byte_code)
       : byte_code_(byte_code), stack_snapshot_(nullptr),
         string_literal_(Value::_undefined()),
         literal_value_(Value::_undefined()), flags_(0), offset_(0) {}
 
-  ~Inst() { delete stack_snapshot_; }
+  ~Ins() { delete stack_snapshot_; }
 
   auto byteCode() { return byte_code_; }
   auto &opcode() { return opcode_; }
   auto &argument() { return argument_; }
   auto stackSnapshot() const { return stack_snapshot_; }
   auto &stack() { return byteCode()->stack(); }
-  auto offset() { return offset_; }
-  auto size() { return size_; }
+  auto offset() const { return offset_; }
+  auto size() const { return size_; }
   auto bb() { return bb_; }
 
   bool isJump() const { return hasFlag(InstFlags::JUMP); }
-  bool isContextBreak() const { return hasFlag(InstFlags::CONTEXT_BREAK); }
   bool isConditionalJump() const {
     return hasFlag(InstFlags::CONDITIONAL_JUMP);
   }
-  bool isTryBlock() const { return hasFlag(InstFlags::TRY_BLOCK); }
+  bool isTryContext() const {
+    return isTryStart() || isTryCatch() || isTryFinally();
+  }
+  bool isTryStart() const { return hasFlag(InstFlags::TRY_START); }
+  bool isTryCatch() const { return hasFlag(InstFlags::TRY_CATCH); }
+  bool isTryFinally() const { return hasFlag(InstFlags::TRY_FINALLY); }
+
+  bool isContextBreak() const { return hasFlag(InstFlags::CONTEXT_BREAK); }
   bool isCatchBlock() const { return hasFlag(InstFlags::CATCH_BLOCK); }
   bool isFinallyBlock() const { return hasFlag(InstFlags::FINALLY_BLOCK); }
   bool isForContextInit() const { return hasFlag(InstFlags::FOR_CONTEXT_INIT); }
@@ -306,8 +315,9 @@ public:
 
   void addFlag(InstFlags flag) {
     if (flag != InstFlags::NONE) {
-      LOG("Add flag: " << inst_flags_strings[static_cast<uint32_t>(std::log2(static_cast<uint32_t>(flag)))]
-                 << " to inst: " << *this);
+      LOG("Add flag: " << inst_flags_strings[static_cast<uint32_t>(
+                              std::log2(static_cast<uint32_t>(flag)))]
+                       << " to inst: " << *this);
     }
     flags_ |= static_cast<uint32_t>(flag);
   }
@@ -315,6 +325,33 @@ public:
   int32_t jumpOffset() const {
     assert(isJump());
     return argument_.branchOffset();
+  }
+
+  int32_t jumpTarget() const {
+    assert(isJump());
+    return offset() + jumpOffset();
+  }
+
+  bool hasNext(Bytecode *bytecode) {
+    return offset() + size() <= bytecode->instructions().back()->offset();
+  }
+
+  Ins *nextInst(Bytecode *bytecode) {
+    return bytecode->offsetToInst().find(offset() + size())->second;
+  }
+
+  Ins *prevInst(Bytecode *bytecode) {
+    int32_t prev_offset = offset() - 1;
+
+    while (true) {
+      auto res = bytecode->offsetToInst().find(prev_offset);
+
+      if (res != bytecode->offsetToInst().end()) {
+        return res->second;
+      }
+
+      prev_offset--;
+    }
   }
 
   void setStringLiteral() {
@@ -350,7 +387,7 @@ public:
 
   void setSize(size_t size) { size_ = size; }
 
-  void setBasicBlock(BasicBlockWeakRef bb) { bb_ = bb; }
+  void setBasicBlock(BasicBlock *bb) { bb_ = bb; }
 
   LiteralIndex decodeLiteralIndex();
   Literal decodeTemplateLiteral();
@@ -362,7 +399,7 @@ public:
   void processPut();
   void decodeGroupOpcode();
 
-  friend std::ostream &operator<<(std::ostream &os, const Inst &inst) {
+  friend std::ostream &operator<<(std::ostream &os, const Ins &inst) {
     if (inst.hasFlag(InstFlags::DEAD)) {
       os << "dead inst";
       return os;
@@ -387,13 +424,13 @@ private:
   Argument argument_;
   ValueRef string_literal_;
   ValueRef literal_value_;
-  BasicBlockWeakRef bb_;
+  BasicBlock *bb_;
   uint32_t payload_;
   uint32_t flags_;
   int32_t offset_;
   int32_t size_;
 };
 
-std::ostream &operator<<(std::ostream &os, const Inst &inst);
+std::ostream &operator<<(std::ostream &os, const Ins &inst);
 } // namespace optimizer
 #endif // INST_H

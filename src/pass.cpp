@@ -13,6 +13,6 @@ namespace optimizer {
 Pass::Pass() {}
 Pass::~Pass() {}
 
-bool Pass::run(BytecodeRef byte_code) { return false; }
+bool Pass::run(Bytecode *byte_code) { return false; }
 
 } // namespace optimizer
