@@ -9,7 +9,9 @@ set(SRC
     basic-block.cpp
     bytecode.cpp
     inst.cpp
+    ir-builder.cpp
     optimizer.cpp
+    pass.cpp
     snapshot-readwriter.cpp
     stack.cpp
     value.cpp
@@ -21,7 +23,6 @@ add_dependencies(optimizer-core jerry-core)
 message(${CMAKE_BINARY_DIR})
 target_include_directories (optimizer-core
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
   PUBLIC ${CMAKE_BINARY_DIR}/deps/jerryscript/amalgam/
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/api

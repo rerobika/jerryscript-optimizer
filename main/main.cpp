@@ -8,6 +8,7 @@
 
 #include "argparse.h"
 #include "optimizer.h"
+#include "passes.h"
 #include <fstream>
 #include <iostream>
 
@@ -49,6 +50,8 @@ int main(int argc, char const *argv[]) {
   }
 
   optimizer::Optimizer optimizer(res.list());
+  optimizer.addPass(new optimizer::IRBuilder());
+  optimizer.run();
 
   return 0;
 }

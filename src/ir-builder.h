@@ -6,12 +6,13 @@
  * according to those terms.
  */
 
-#ifndef OPTIMIZER_H
-#define OPTIMIZER_H
+#ifndef IR_BUILDER_H
+#define IR_BUILDER_H
 
 #include "basic-block.h"
 #include "common.h"
 #include "inst.h"
+#include "pass.h"
 #include "snapshot-readwriter.h"
 
 namespace optimizer {
@@ -19,16 +20,16 @@ namespace optimizer {
 using BBResult = std::pair<InstWeakRef, BasicBlockWeakRef>;
 using BBRange = std::pair<std::pair<int32_t, int32_t>, BasicBlockRef>;
 
-class Optimizer {
+class IRBuilder : public Pass {
 public:
-  Optimizer(BytecodeRefList &list);
-  ~Optimizer();
+  IRBuilder();
+  ~IRBuilder();
 
-  void buildBasicBlocks(BytecodeRef byte_code);
-
-  auto &list() { return list_; }
+  virtual bool run(BytecodeRef byte_code);
 
 private:
+  void buildBasicBlocks(BytecodeRef byte_code);
+
   BasicBlockRef findBB(size_t index);
   void setLoopJumps(BasicBlockRef next_bb, BasicBlockRef body_end_bb,
                     int32_t body_end, int32_t loop_end);
@@ -40,7 +41,6 @@ private:
   BasicBlockID next() { return bb_id_++; }
 
 private:
-  BytecodeRefList list_;
   std::vector<BBRange> bb_ranges_;
   std::vector<std::pair<InstRef, int32_t>> unknown_jumps_;
   BasicBlockRef current_loop_body_;
@@ -49,4 +49,4 @@ private:
 
 } // namespace optimizer
 
-#endif // OPTIMIZER_H
+#endif // IR_BUILDER_H
