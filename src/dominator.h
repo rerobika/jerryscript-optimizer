@@ -28,9 +28,7 @@ private:
   void computeDominators(BasicBlockList &bbs);
   void computeDominated(BasicBlockList &bbs);
 
-  bool dominates(BasicBlock *who, BasicBlock *whom, BasicBlock *root);
-  void checkDominates(BasicBlockList &stack, bool &dominates, BasicBlock *who,
-                      BasicBlock *whom, BasicBlock *current);
+  bool dominatedBy(BasicBlock *who, BasicBlock *by);
 };
 
 } // namespace optimizer

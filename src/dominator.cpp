@@ -28,41 +28,14 @@ bool Dominator::run(Optimizer *optimizer, Bytecode *byte_code) {
 
   computeDominators(bbs);
   computeDominated(bbs);
+
+  optimizer->finish(PassKind::DOMINATOR);
   return true;
 }
 
-bool Dominator::dominates(BasicBlock *who, BasicBlock *whom, BasicBlock *root) {
-  BasicBlockList stack{root};
-  bool dominates = false;
-  checkDominates(stack, dominates, who, whom, root);
-  return dominates;
-}
-
-void Dominator::checkDominates(BasicBlockList &stack, bool &dominates,
-                               BasicBlock *who, BasicBlock *whom,
-                               BasicBlock *current) {
-
-  current->iterateSuccessors(
-      [this, &stack, &dominates, whom, who](BasicBlock *child) -> void {
-        if (std::find(stack.begin(), stack.end(), child) != stack.end()) {
-          return;
-        }
-
-        if (child == who) {
-          for (auto &bb : stack) {
-            if (bb->id() == whom->id()) {
-              dominates = true;
-              return;
-            }
-          }
-        }
-
-        if (!dominates) {
-          stack.push_back(child);
-          this->checkDominates(stack, dominates, who, whom, child);
-          stack.pop_back();
-        }
-      });
+bool Dominator::dominatedBy(BasicBlock *who, BasicBlock *by) {
+  return std::find(who->dominators().begin(), who->dominators().end(), by) !=
+         who->dominators().end();
 }
 
 void Dominator::computeDominated(BasicBlockList &bbs) {
@@ -72,36 +45,38 @@ void Dominator::computeDominated(BasicBlockList &bbs) {
   for (iter++; iter != bbs.end(); iter++) {
     BasicBlock *bb = (*iter);
 
-    BasicBlockList set = bb->dominators();
+    BasicBlockList doms = bb->dominators();
 
-    // Calculate dom(n) - n
-    set.erase(std::remove(set.begin(), set.end(), bb), set.end());
+    // Remove n from dom(n)
+    doms.erase(std::remove(doms.begin(), doms.end(), bb), doms.end());
 
-    while (set.size() != 1) {
-      for (auto iter = set.begin(); iter != set.end(); iter++) {
-        assert(std::next(iter) != set.end());
-        BasicBlock *next = *std::next(iter);
-        if (dominates(*iter, next, bbs[0])) {
-          set.erase(std::remove(set.begin(), set.end(), next), set.end());
-          break;
+    while (doms.size() != 1) {
+    restart:
+      for (size_t i = 0; i < doms.size(); i++) {
+        for (size_t j = i + 1; j < doms.size(); j++) {
+          if (dominatedBy(doms[i], doms[j])) {
+            doms.erase(std::remove(doms.begin(), doms.end(), doms[j]),
+                       doms.end());
+            goto restart;
+          }
+          if (dominatedBy(doms[j], doms[i])) {
+            doms.erase(std::remove(doms.begin(), doms.end(), doms[i]),
+                       doms.end());
+            goto restart;
+          }
         }
       }
     }
 
-    bb->dominated() = set.back();
-    // for (auto iter : bbs) {
-    //   if (iter->id() == set.back()->id()) {
-    //     bb->dominated() = set.back();
-    //     break;
-    //   }
-    // }
+    // The remaining element in the doms will be de immidiate dominator
+    bb->dominated() = doms.back();
   }
 
   for (auto &bb : bbs) {
     if (bb->dominated()) {
-      LOG("BB: " << bb->id() << " idom: " << bb->dominated()->id());
+      LOG("BB: " << bb->id() << "'s idom: " << bb->dominated()->id());
     } else {
-      LOG("BB: " << bb->id() << " idom: -");
+      LOG("BB: " << bb->id() << "'s idom: -");
     }
   }
 }
@@ -120,7 +95,6 @@ void Dominator::computeDominators(BasicBlockList &bbs) {
   }
 
   // iteratively eliminate nodes that are not dominators
-
   while (true) {
     bool changed = false;
 
@@ -177,7 +151,7 @@ void Dominator::computeDominators(BasicBlockList &bbs) {
 
   for (auto bb : bbs) {
     std::stringstream ss;
-    ss << "BB: " << bb->id() << " dominates: <";
+    ss << "BB: " << bb->id() << "'s dominators: <";
 
     for (auto dom : bb->dominators()) {
       ss << dom->id();
@@ -186,7 +160,7 @@ void Dominator::computeDominators(BasicBlockList &bbs) {
         ss << ", ";
       }
     }
-    ss << ">" << std::endl;
+    ss << ">";
     LOG(ss.str());
   }
 }
