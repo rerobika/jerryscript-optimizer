@@ -26,6 +26,10 @@ public:
 
   virtual bool run(Optimizer *optimizer, Bytecode *byte_code);
 
+  virtual const char *name() { return "IRBuilder"; }
+
+  virtual PassKind kind() { return PassKind::IR_BUILDER; }
+
 private:
   void findLeaders();
   void buildBlocks();

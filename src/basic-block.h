@@ -59,9 +59,17 @@ public:
   auto &successors() { return successors_; }
   auto &dominated() { return dominated_; }
   auto &dominators() { return dominators_; }
+
   auto &insns() { return insts_; }
   auto id() const { return id_; }
   auto type() const { return type_; }
+
+  auto &defs() { return defs_; }
+  auto &uses() { return uses_; }
+  auto &liveIn() { return live_in_; }
+  auto &liveOut() { return live_out_; }
+  auto &in() { return in_; }
+  auto &out() { return out_; }
 
   bool isValid() const {
     return (flags_ & static_cast<uint32_t>(BasicBlockFlags::INVALID)) == 0;
@@ -150,6 +158,13 @@ private:
   BasicBlockID id_;
   BasicBlockType type_;
   uint32_t flags_;
+
+  RegSet defs_;
+  RegSet uses_;
+  RegSet live_in_;
+  RegSet live_out_;
+  RegSet in_;
+  RegSet out_;
 };
 
 } // namespace optimizer

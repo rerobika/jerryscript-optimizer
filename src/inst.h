@@ -268,6 +268,8 @@ public:
   auto offset() const { return offset_; }
   auto size() const { return size_; }
   auto bb() { return bb_; }
+  auto readReg() const { return read_reg_; }
+  auto writeReg() const { return write_reg_; }
 
   bool isJump() const { return hasFlag(InstFlags::JUMP); }
   bool isConditionalJump() const {

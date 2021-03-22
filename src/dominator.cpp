@@ -29,7 +29,6 @@ bool Dominator::run(Optimizer *optimizer, Bytecode *byte_code) {
   computeDominators(bbs);
   computeDominated(bbs);
 
-  optimizer->finish(PassKind::DOMINATOR);
   return true;
 }
 

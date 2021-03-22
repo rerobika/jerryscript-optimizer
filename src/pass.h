@@ -16,7 +16,7 @@ namespace optimizer {
 
 class Optimizer;
 
-enum PassKind { NONE, IR_BUILDER, DOMINATOR };
+enum PassKind { NONE, IR_BUILDER, DOMINATOR, LIVENESS_ANALYZER };
 
 class Pass {
 public:
@@ -24,6 +24,10 @@ public:
   virtual ~Pass();
 
   virtual bool run(Optimizer *optimizer, Bytecode *byte_code);
+
+  virtual const char *name() { return ""; }
+
+  virtual PassKind kind() { return PassKind::NONE; }
 };
 
 } // namespace optimizer

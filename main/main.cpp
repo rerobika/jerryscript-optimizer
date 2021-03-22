@@ -52,6 +52,7 @@ int main(int argc, char const *argv[]) {
   optimizer::Optimizer optimizer(res.list());
   optimizer.addPass(new optimizer::IRBuilder());
   optimizer.addPass(new optimizer::Dominator());
+  optimizer.addPass(new optimizer::LivenessAnalyzer());
   optimizer.run();
 
   return 0;

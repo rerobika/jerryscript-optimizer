@@ -23,9 +23,14 @@ Optimizer::~Optimizer() {
 bool Optimizer::run() {
   for (auto &it : list_) {
     for (auto pass : passes_) {
+      LOG("------------- Starting pass: " << pass->name() << "-------------");
+
       if (!pass->run(this, it)) {
         return false;
       }
+
+      LOG("------------- Finish pass: " << pass->name() << "-------------");
+      finish(pass->kind());
     }
   }
 

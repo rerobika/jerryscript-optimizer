@@ -23,12 +23,20 @@ public:
   ~Dominator();
 
   virtual bool run(Optimizer *optimizer, Bytecode *byte_code);
+  bool dominatedBy(BasicBlock *who, BasicBlock *by);
+
+  virtual const char* name() {
+    return "DominatorTree";
+  }
+
+  virtual PassKind kind() {
+    return PassKind::DOMINATOR;
+  }
 
 private:
   void computeDominators(BasicBlockList &bbs);
   void computeDominated(BasicBlockList &bbs);
 
-  bool dominatedBy(BasicBlock *who, BasicBlock *by);
 };
 
 } // namespace optimizer

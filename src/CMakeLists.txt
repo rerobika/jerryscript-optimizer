@@ -11,6 +11,7 @@ set(SRC
     dominator.cpp
     inst.cpp
     ir-builder.cpp
+    liveness-analyzer.cpp
     optimizer.cpp
     pass.cpp
     snapshot-readwriter.cpp

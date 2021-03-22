@@ -25,15 +25,10 @@ bool IRBuilder::run(Optimizer *optimizer, Bytecode *byte_code) {
   buildBlocks();
   connectBlocks();
 
-  LOG("--------- function basicblocks start --------");
-
   for (auto &bb : bbs_) {
     LOG(*bb);
   }
 
-  LOG("--------- function basicblocks end --------");
-
-  optimizer->finish(PassKind::IR_BUILDER);
   byte_code->basicBlockList() = std::move(bbs_);
   return true;
 }
