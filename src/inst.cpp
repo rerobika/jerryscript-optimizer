@@ -18,7 +18,9 @@ ValueRef Literal::toValueRef(Bytecode *byte_code) {
   }
   case LiteralType::REGISTER: {
     assert(index() < byte_code->args().registerEnd());
-    return byte_code->stack().getRegister(byte_code->toRegisterIndex(index()));
+    uint32_t reg_index = byte_code->toRegisterIndex(index());
+    byte_code->instructions().back()->setReadReg(reg_index);
+    return byte_code->stack().getRegister(reg_index);
   }
   case LiteralType::IDENT: {
     assert(index() < byte_code->args().identEnd());
@@ -213,8 +215,9 @@ void Ins::processPut() {
     LiteralIndex literal_index = decodeLiteralIndex();
 
     if (literal_index < byteCode()->args().registerEnd()) {
-      stack().setRegister(byteCode()->toRegisterIndex(literal_index),
-                          stack().result());
+      uint32_t reg_index = byteCode()->toRegisterIndex(literal_index);
+      setWriteReg(reg_index);
+      stack().setRegister(reg_index, stack().result());
     } else {
       Literal literal = decodeLiteral(literal_index);
       setStringLiteral(literal);
@@ -226,8 +229,9 @@ void Ins::processPut() {
 
     if (base->type() == ValueType::INTERNAL) {
       uint32_t literal_index = ecma_get_integer_from_value(property->value());
-      stack().setRegister(byteCode()->toRegisterIndex(literal_index),
-                          stack().result());
+      uint32_t reg_index = byteCode()->toRegisterIndex(literal_index);
+      setWriteReg(reg_index);
+      stack().setRegister(reg_index, stack().result());
     } else {
       stack().setResult(Value::_any());
     }
@@ -358,8 +362,9 @@ void Ins::decodeGroupOpcode() {
     LiteralIndex literal_index = decodeLiteralIndex();
 
     if (literal_index < byteCode()->args().registerEnd()) {
-      stack().setRegister(byteCode()->toRegisterIndex(literal_index),
-                          Value::_object());
+      uint32_t reg_index = byteCode()->toRegisterIndex(literal_index);
+      setWriteReg(reg_index);
+      stack().setRegister(reg_index, Value::_object());
       break;
     }
 
@@ -377,14 +382,17 @@ void Ins::decodeGroupOpcode() {
     ValueRef lit_value;
 
     if (value_index < byteCode()->args().registerEnd()) {
-      lit_value = stack().getRegister(byteCode()->toRegisterIndex(value_index));
+      uint32_t reg_index = byteCode()->toRegisterIndex(value_index);
+      setReadReg(reg_index);
+      lit_value = stack().getRegister(reg_index);
     } else {
       lit_value = Value::_object();
     }
 
     if (literal_index < byteCode()->args().registerEnd()) {
-      stack().setRegister(byteCode()->toRegisterIndex(literal_index),
-                          lit_value);
+      uint32_t reg_index = byteCode()->toRegisterIndex(literal_index);
+      setWriteReg(reg_index);
+      stack().setRegister(reg_index, lit_value);
       break;
     }
 
@@ -720,8 +728,10 @@ void Ins::decodeGroupOpcode() {
     if (literal_index < byteCode()->args().registerEnd()) {
       stack().push(Value::_internal());
       stack().push(Value::_number(literal_index));
-      stack().push(
-          stack().getRegister(byteCode()->toRegisterIndex(literal_index)));
+
+      uint32_t reg_index = byteCode()->toRegisterIndex(literal_index);
+      setReadReg(reg_index);
+      stack().push(stack().getRegister(reg_index));
     } else {
       stack().push(Value::_object());
       stack().push(Value::_string());
@@ -798,8 +808,9 @@ void Ins::decodeGroupOpcode() {
   }
   case VM_OC_MOV_IDENT: {
     LiteralIndex literal_index = decodeLiteralIndex();
-    stack().setRegister(byteCode()->toRegisterIndex(literal_index),
-                        stack().left());
+    uint32_t reg_index = byteCode()->toRegisterIndex(literal_index);
+    setWriteReg(reg_index);
+    stack().setRegister(reg_index, stack().left());
     break;
   }
   case VM_OC_ASSIGN_PROP: {
@@ -948,8 +959,10 @@ void Ins::decodeGroupOpcode() {
     LiteralIndex literal_index = decodeLiteralIndex();
 
     if (literal_index < byteCode()->args().registerEnd()) {
-      stack().setLeft(
-          stack().getRegister(byteCode()->toRegisterIndex(literal_index)));
+
+      uint32_t reg_index = byteCode()->toRegisterIndex(literal_index);
+      setReadReg(reg_index);
+      stack().setLeft(stack().getRegister(reg_index));
     } else {
       stack().setLeft(Value::_any());
     }

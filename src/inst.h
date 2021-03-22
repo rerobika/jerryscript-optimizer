@@ -239,19 +239,6 @@ private:
   OpcodeData opcode_data_;
 };
 
-static const char *inst_flags_strings[] = {
-    "JUMP",
-    "CONDITIONAL_JUMP",
-    "CONTEXT_BREAK",
-    "TRY_BLOCK",
-    "CATCH_BLOCK",
-    "FINALLY_BLOCK",
-    "FOR_CONTEXT_INIT",
-    "FOR_CONTEXT_GET_NEXT",
-    "FOR_CONTEXT_HAS_NEXT",
-    "DEAD",
-};
-
 enum class InstFlags {
   NONE = 0,
   JUMP = (1 << 0),
@@ -259,14 +246,9 @@ enum class InstFlags {
   TRY_START = (1 << 2),
   TRY_CATCH = (1 << 3),
   TRY_FINALLY = (1 << 4),
-
-  CONTEXT_BREAK = (1 << 2),
-  CATCH_BLOCK = (1 << 4),
-  FINALLY_BLOCK = (1 << 5),
-  FOR_CONTEXT_INIT = (1 << 6),
-  FOR_CONTEXT_GET_NEXT = (1 << 7),
-  FOR_CONTEXT_HAS_NEXT = (1 << 8),
-  DEAD = (1 << 9),
+  WRITE_REG = (1 << 5),
+  READ_REG = (1 << 6),
+  DEAD = (1 << 7),
 };
 
 class Ins {
@@ -298,29 +280,11 @@ public:
   bool isTryCatch() const { return hasFlag(InstFlags::TRY_CATCH); }
   bool isTryFinally() const { return hasFlag(InstFlags::TRY_FINALLY); }
 
-  bool isContextBreak() const { return hasFlag(InstFlags::CONTEXT_BREAK); }
-  bool isCatchBlock() const { return hasFlag(InstFlags::CATCH_BLOCK); }
-  bool isFinallyBlock() const { return hasFlag(InstFlags::FINALLY_BLOCK); }
-  bool isForContextInit() const { return hasFlag(InstFlags::FOR_CONTEXT_INIT); }
-  bool isForContextGetNext() const {
-    return hasFlag(InstFlags::FOR_CONTEXT_GET_NEXT);
-  }
-  bool isForContextHasNext() const {
-    return hasFlag(InstFlags::FOR_CONTEXT_HAS_NEXT);
-  }
-
   bool hasFlag(InstFlags flag) const {
     return (flags_ & static_cast<uint32_t>(flag)) != 0;
   }
 
-  void addFlag(InstFlags flag) {
-    if (flag != InstFlags::NONE) {
-      LOG("Add flag: " << inst_flags_strings[static_cast<uint32_t>(
-                              std::log2(static_cast<uint32_t>(flag)))]
-                       << " to inst: " << *this);
-    }
-    flags_ |= static_cast<uint32_t>(flag);
-  }
+  void addFlag(InstFlags flag) { flags_ |= static_cast<uint32_t>(flag); }
 
   int32_t jumpOffset() const {
     assert(isJump());
@@ -399,16 +363,33 @@ public:
   void processPut();
   void decodeGroupOpcode();
 
+  void setWriteReg(uint32_t index) {
+    addFlag(InstFlags::WRITE_REG);
+    write_reg_ = index;
+  }
+
+  void setReadReg(uint32_t index) {
+    addFlag(InstFlags::READ_REG);
+    read_reg_ = index;
+  }
+
   friend std::ostream &operator<<(std::ostream &os, const Ins &inst) {
     if (inst.hasFlag(InstFlags::DEAD)) {
-      os << "dead inst";
-      return os;
+      os << "<dead>";
     }
 
     os << "Offset: " << inst.offset_ << ": "
        << cbc_names[inst.opcode_.isExtOpcode()
                         ? inst.opcode_.CBCopcode() - 256 + CBC_END + 1
                         : inst.opcode_.CBCopcode()];
+
+    if (inst.hasFlag(InstFlags::READ_REG)) {
+      os << " read: " << inst.read_reg_ << " ";
+    }
+
+    if (inst.hasFlag(InstFlags::WRITE_REG)) {
+      os << " write: " << inst.write_reg_ << " ";
+    }
 
     if (inst.argument_.type() == OperandType::BRANCH) {
       os << " offset: " << inst.argument_.branchOffset() << "(->"
@@ -429,6 +410,8 @@ private:
   uint32_t flags_;
   int32_t offset_;
   int32_t size_;
+  uint32_t read_reg_;
+  uint32_t write_reg_;
 };
 
 std::ostream &operator<<(std::ostream &os, const Ins &inst);

@@ -11,12 +11,15 @@
 
 namespace optimizer {
 
-IRBuilder::IRBuilder() : Pass(), bb_id_(0) {}
+IRBuilder::IRBuilder() : Pass() {}
 
 IRBuilder::~IRBuilder() {}
 
 bool IRBuilder::run(Optimizer *optimizer, Bytecode *byte_code) {
   byte_code_ = byte_code;
+  bb_id_ = 0;
+  bbs_.clear();
+  leaders_.clear();
 
   findLeaders();
   buildBlocks();
