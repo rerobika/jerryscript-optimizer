@@ -6,8 +6,8 @@
  * according to those terms.
  */
 
-#ifndef LIVENESS_ANALYZER_H
-#define LIVENESS_ANALYZER_H
+#ifndef REGISTER_COMPRESSER_H
+#define REGISTER_COMPRESSER_H
 
 #include "bytecode.h"
 #include "common.h"
@@ -17,24 +17,25 @@ namespace optimizer {
 
 class Optimizer;
 
-class LivenessAnalyzer : public Pass {
+class RegisterCompresser : public Pass {
 public:
-  LivenessAnalyzer();
-  ~LivenessAnalyzer();
+  RegisterCompresser();
+  ~RegisterCompresser();
 
   virtual bool run(Optimizer *optimizer, Bytecode *byte_code);
 
-  virtual const char *name() { return "LivenessAnalyzer"; }
+  virtual const char *name() { return "RegisterCompresser"; }
 
-  virtual PassKind kind() { return PassKind::LIVENESS_ANALYZER; }
+  virtual PassKind kind() { return PassKind::REGISTER_COMPRESSER; }
 
 private:
-  bool setsEqual(RegSet &a, RegSet &b);
-  void computeDefsUses(BasicBlockList &bbs, InsList &insns);
-  void computeInOut(BasicBlockList &bbs);
+  void findReusable(BasicBlockList &bbs);
+  void adjustRegs(BasicBlockList &bbs, InsList &insns);
 
+  RegSet reusable_;
+  uint32_t regs_count_;
 };
 
 } // namespace optimizer
 
-#endif // LIVENESS_ANALYZER_H
+#endif // REGISTER_COMPRESSER_H

@@ -16,7 +16,13 @@ namespace optimizer {
 
 class Optimizer;
 
-enum PassKind { NONE, IR_BUILDER, DOMINATOR, LIVENESS_ANALYZER };
+enum PassKind {
+  NONE,
+  IR_BUILDER,
+  DOMINATOR,
+  LIVENESS_ANALYZER,
+  REGISTER_COMPRESSER,
+};
 
 class Pass {
 public:

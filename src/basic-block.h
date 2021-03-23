@@ -131,7 +131,7 @@ public:
 
 private:
   // IR-builder
-  InstList insts_;
+  InsList insts_;
 
   // Dominator
   BasicBlockList predecessors_;

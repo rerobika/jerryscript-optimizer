@@ -27,7 +27,7 @@ using RegSet = std::unordered_set<uint32_t>;
 using BasicBlockList = std::vector<BasicBlock *>;
 using BasicBlockSet = std::unordered_set<BasicBlock *>;
 using BasicBlockOrderedSet = std::set<BasicBlock *>;
-using InstList = std::vector<Ins *>;
+using InsList = std::vector<Ins *>;
 using OffsetMap = std::unordered_map<int32_t, Ins *>;
 using LiteralIndex = uint16_t;
 using BasicBlockID = uint32_t;
@@ -211,7 +211,7 @@ private:
   BytecodeArguments args_;
   LiteralPool literal_pool_;
   Stack stack_;
-  InstList instructions_;
+  InsList instructions_;
   OffsetMap inst_to_offset_;
   BasicBlockList bb_list_;
 };

@@ -14,6 +14,7 @@ set(SRC
     liveness-analyzer.cpp
     optimizer.cpp
     pass.cpp
+    register-compresser.cpp
     snapshot-readwriter.cpp
     stack.cpp
     value.cpp

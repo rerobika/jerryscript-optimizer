@@ -12,5 +12,6 @@
 #include "dominator.h"
 #include "ir-builder.h"
 #include "liveness-analyzer.h"
+#include "register-compresser.h"
 
 #endif // PASSES_H
