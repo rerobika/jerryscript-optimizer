@@ -29,6 +29,10 @@ bool LivenessAnalyzer::run(Optimizer *optimizer, Bytecode *byte_code) {
 
   LOG("TOTAL REG count :" << regs_number_);
 
+  if (regs_number_ == 0) {
+    return true;
+  }
+
   BasicBlockList &bbs = byte_code->basicBlockList();
   InstList &insns = byte_code->instructions();
 
@@ -75,10 +79,6 @@ bool LivenessAnalyzer::isLive(uint32_t reg, BasicBlock *from, BasicBlock *to) {
   if (!from->isValid() || !to->isValid()) {
     return false;
   }
-  // if (from->uses().find(reg) == from->uses().end() &&
-  //     from->defs().find(reg) == from->defs().end()) {
-  //   return false;
-  // }
 
   Edge *edge = new Edge(from, to);
   auto edge_res = edges_.find(edge);
@@ -105,9 +105,6 @@ bool LivenessAnalyzer::isLive(uint32_t reg, BasicBlock *from, BasicBlock *to) {
   for (auto &use : res->second) {
     BasicBlockOrderedSet path;
     findDirectPath(path, to, use);
-    // LOG("FIND_PATH " << reg << " FROM: " << from->id() << " TO: " <<
-    // use->id());
-
     // Find direct path from to -> use(reg)
     if (use->hasFlag(BasicBlockFlags::FOUND)) {
       use->clearFlag(BasicBlockFlags::FOUND);
@@ -117,8 +114,6 @@ bool LivenessAnalyzer::isLive(uint32_t reg, BasicBlock *from, BasicBlock *to) {
       edge->live()[reg] = 1;
       return true;
     }
-    // LOG("REG " << reg << " DEAD ON EDGE: " << from->id() << " TO:" <<
-    // to->id());
   }
 
   edge->live()[reg] = 0;
@@ -184,7 +179,7 @@ void LivenessAnalyzer::computeDefsUses(BasicBlockList &bbs, InstList &insns) {
 }
 
 void LivenessAnalyzer::computeLiveInOut(BasicBlockList &bbs) {
-  for (uint32_t current_reg_ = 0; current_reg_ < regs_number_; current_reg_++) {
+  for (current_reg_ = 0; current_reg_ < regs_number_; current_reg_++) {
     for (auto bb : bbs) {
       for (auto succ : bb->successors()) {
         if (isLive(current_reg_, bb, succ)) {

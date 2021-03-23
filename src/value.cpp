@@ -30,7 +30,8 @@ Value::Value(ecma_value_t value) {
     } else if (ecma_is_value_string(value)) {
       type_ = ValueType::STRING;
     } else {
-      assert(ecma_is_value_number);
+      assert(ecma_is_value_number(value));
+      value_ = ecma_copy_value(value);
       type_ = ValueType::NUMBER;
     }
   }
