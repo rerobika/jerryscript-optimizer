@@ -31,8 +31,10 @@ public:
 private:
   bool setsEqual(RegSet &a, RegSet &b);
   void computeDefsUses(BasicBlockList &bbs, InsList &insns);
-  void computeInOut(BasicBlockList &bbs);
+  void computeLiveOut(BasicBlock *bb);
+  void computeLiveOuts(BasicBlockList &bbs);
 
+  uint32_t regs_count_;
 };
 
 } // namespace optimizer

@@ -19,11 +19,11 @@ LivenessAnalyzer::~LivenessAnalyzer() {}
 bool LivenessAnalyzer::run(Optimizer *optimizer, Bytecode *byte_code) {
   assert(optimizer->isSucceeded(PassKind::DOMINATOR));
 
-  uint32_t regs_count = byte_code->args().registerCount();
+  regs_count_ = byte_code->args().registerCount();
 
-  LOG("TOTAL REG count :" << regs_count);
+  LOG("TOTAL REG count :" << regs_count_);
 
-  if (regs_count == 0) {
+  if (regs_count_ == 0) {
     return true;
   }
 
@@ -31,7 +31,7 @@ bool LivenessAnalyzer::run(Optimizer *optimizer, Bytecode *byte_code) {
   InsList &insns = byte_code->instructions();
 
   computeDefsUses(bbs, insns);
-  computeInOut(bbs);
+  computeLiveOuts(bbs);
 
   return true;
 }
@@ -72,26 +72,37 @@ bool LivenessAnalyzer::setsEqual(RegSet &a, RegSet &b) {
   return true;
 }
 
-void LivenessAnalyzer::computeInOut(BasicBlockList &bbs) {
+void LivenessAnalyzer::computeLiveOut(BasicBlock *bb) {
+  RegSet new_liveout;
+
+  for (auto succ : bb->successors()) {
+    // out[n] <- ue[n] U (out[n] - comp(kill[n]))
+    // Note: (out[n] - comp(kill[n])) == out[n] - (out[n] intersection kill[n])
+    RegSet difference;
+
+    for (auto reg : succ->liveOut()) {
+      if (succ->kill().find(reg) == succ->kill().end()) {
+        difference.insert(reg);
+      }
+    }
+
+    new_liveout.insert(difference.begin(), difference.end());
+    new_liveout.insert(bb->ue().begin(), bb->ue().end());
+  }
+
+  bb->liveOut() = std::move(new_liveout);
+}
+
+void LivenessAnalyzer::computeLiveOuts(BasicBlockList &bbs) {
 
   while (true) {
     bool changed = false;
-
     for (auto bb : bbs) {
       // out'[n]
       RegSet current_out = bb->liveOut();
 
-      // out[n] <- ue[n] U (out[n] - kill[n])
-      RegSet intersection;
-      std::set_intersection(bb->liveOut().begin(), bb->liveOut().end(),
-                            bb->kill().begin(), bb->kill().end(),
-                            std::inserter(intersection, intersection.end()));
+      computeLiveOut(bb);
 
-      // bb->liveIn().clear();
-      bb->liveOut().clear();
-      std::set_union(intersection.begin(), intersection.end(), bb->ue().begin(),
-                     bb->ue().end(),
-                     std::inserter(bb->liveOut(), bb->liveOut().end()));
       if (!setsEqual(current_out, bb->liveOut())) {
         changed = true;
       }
@@ -100,26 +111,26 @@ void LivenessAnalyzer::computeInOut(BasicBlockList &bbs) {
     if (!changed) {
       break;
     }
-  }
 
-  LOG("------------------------------------------");
+    LOG("------------------------------------------");
 
-  for (auto bb : bbs) {
-    std::stringstream ss;
+    for (auto bb : bbs) {
+      std::stringstream ss;
 
-    for (auto iter = bb->liveOut().begin(); iter != bb->liveOut().end();
-         iter++) {
-      ss << *iter;
+      for (auto iter = bb->liveOut().begin(); iter != bb->liveOut().end();
+           iter++) {
+        ss << *iter;
 
-      if (std::next(iter) != bb->liveOut().end()) {
-        ss << ", ";
+        if (std::next(iter) != bb->liveOut().end()) {
+          ss << ", ";
+        }
       }
+
+      LOG("BB " << bb->id() << " OUT: " << ss.str());
     }
 
-    LOG("BB " << bb->id() << " OUT: " << ss.str());
+    LOG("------------------------------------------");
   }
-
-  LOG("------------------------------------------");
 }
 
 } // namespace optimizer
