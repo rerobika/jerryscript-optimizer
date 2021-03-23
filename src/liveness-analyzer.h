@@ -59,15 +59,15 @@ public:
   virtual PassKind kind() { return PassKind::LIVENESS_ANALYZER; }
 
 private:
-  void findDirectPath(BasicBlockOrderedSet &path, BasicBlock *from,
-                      BasicBlock *to);
+  // void findDirectPath(BasicBlockOrderedSet &path, BasicBlock *from,
+  //                     BasicBlock *to);
   bool setsEqual(RegSet &a, RegSet &b);
 
-  bool isLive(uint32_t reg, BasicBlock *from, BasicBlock *to);
-  bool isLiveInAt(uint32_t reg, BasicBlock *bb);
-  bool isLiveOutAt(uint32_t reg, BasicBlock *bb);
+  // bool isLive(uint32_t reg, BasicBlock *from, BasicBlock *to);
+  // bool isLiveInAt(uint32_t reg, BasicBlock *bb);
+  // bool isLiveOutAt(uint32_t reg, BasicBlock *bb);
+  // void computeLiveInOut(BasicBlockList &bbs);
   void computeDefsUses(BasicBlockList &bbs, InstList &insns);
-  void computeLiveInOut(BasicBlockList &bbs);
   void computeInOut(BasicBlockList &bbs);
 
   uint32_t regs_number_;

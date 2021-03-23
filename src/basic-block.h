@@ -38,12 +38,16 @@ public:
   auto &insns() { return insts_; }
   auto id() const { return id_; }
 
-  auto &defs() { return defs_; }
-  auto &uses() { return uses_; }
-  auto &liveIn() { return live_in_; }
+  // auto &defs() { return defs_; }
+  // auto &uses() { return uses_; }
+  // auto &liveIn() { return live_in_; }
+  // auto &liveOut() { return live_out_; }
+  // auto &in() { return in_; }
+  // auto &out() { return out_; }
+
+  auto &ue() { return ue_; }
+  auto &kill() { return kill_; }
   auto &liveOut() { return live_out_; }
-  auto &in() { return in_; }
-  auto &out() { return out_; }
 
   bool isValid() const {
     return (flags_ & static_cast<uint32_t>(BasicBlockFlags::INVALID)) == 0;
@@ -136,12 +140,16 @@ private:
   BasicBlockList dominators_;
 
   // Liveness
-  RegSet defs_;
-  RegSet uses_;
-  RegSet live_in_;
+  // RegSet defs_;
+  // RegSet uses_;
+  // RegSet live_in_;
+  // RegSet live_out_;
+  // RegSet in_;
+  // RegSet out_;
+
+  RegSet ue_;
+  RegSet kill_;
   RegSet live_out_;
-  RegSet in_;
-  RegSet out_;
 
   uint32_t flags_;
   BasicBlockID id_;
