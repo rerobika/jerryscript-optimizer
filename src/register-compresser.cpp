@@ -30,7 +30,7 @@ bool RegisterCompresser::run(Optimizer *optimizer, Bytecode *byte_code) {
 
   findLocals(bbs);
   buildLiveIntervals();
-  adjustInstructions(insns);
+  adjustLocals(insns);
 
   return true;
 }
@@ -99,12 +99,51 @@ void RegisterCompresser::buildLiveIntervals() {
     LOG("BB " << bb->id() << ":");
 
     for (auto res : li_map) {
-      LOG(" REG: " << res.first << " start: " << res.second.start()
-                   << " end: " << res.second.end());
+      LOG(" REG: " << res.first << " li: " << res.second);
     }
   }
 }
 
-void RegisterCompresser::adjustInstructions(InsList &insns) {}
+void RegisterCompresser::adjustLocals(InsList &insns) {
+  RegLiveIntervalList intervals;
+
+  for (auto &elem : bb_li_map_) {
+    LiveIntervalMap &li_map = elem.second;
+
+    for (auto res : li_map) {
+      intervals.push_back({res.first, res.second});
+    }
+  }
+
+  if (intervals.size() <= 1) {
+    return;
+  }
+
+  std::sort(intervals.begin(), intervals.end(),
+            [](const RegLiveInterval &a, const RegLiveInterval &b) {
+              if (a.second.start() < b.second.start()) {
+                return true;
+              }
+
+              if (a.second.start() == b.second.start()) {
+                return a.second.end() <= b.second.end();
+              }
+
+              return false;
+            });
+
+  for (auto &li : intervals) {
+    LOG(li.second);
+  }
+
+  for (size_t i = 1; i < intervals.size(); i++) {
+    RegLiveInterval &current = intervals[i];
+    RegLiveInterval &prev = intervals[i - 1];
+
+    if (current.second.start() >= prev.second.end()) {
+      LOG("FREE reg:" << current.first);
+    }
+  }
+}
 
 } // namespace optimizer

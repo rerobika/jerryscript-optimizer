@@ -41,11 +41,19 @@ public:
   void setStart(uint32_t start) { start_ = start; }
   void setEnd(uint32_t end) { end_ = end; }
 
+  friend std::ostream &operator<<(std::ostream &os, const LiveInterval &li) {
+    os << "start: " << li.start() << " end: " << li.end();
+    return os;
+  }
+
 private:
   uint32_t start_;
   uint32_t end_;
 };
 
+using LiveIntervalList = std::vector<LiveInterval>;
+using RegLiveInterval = std::pair<uint32_t, LiveInterval>;
+using RegLiveIntervalList = std::vector<RegLiveInterval>;
 using LiveIntervalMap = std::unordered_map<uint32_t, LiveInterval>;
 
 class Optimizer;
@@ -64,7 +72,7 @@ public:
 private:
   void findLocals(BasicBlockList &bbs);
   void buildLiveIntervals();
-  void adjustInstructions(InsList &insns);
+  void adjustLocals(InsList &insns);
 
   RegSet reusable_;
   uint32_t regs_count_;
