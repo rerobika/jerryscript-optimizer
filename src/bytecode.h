@@ -25,6 +25,8 @@ using RegList = std::vector<uint32_t>;
 using RegSet = std::unordered_set<uint32_t>;
 
 using BasicBlockList = std::vector<BasicBlock *>;
+using BasicBlockSet = std::unordered_set<BasicBlock *>;
+using BasicBlockOrderedSet = std::set<BasicBlock *>;
 using InstList = std::vector<Ins *>;
 using OffsetMap = std::unordered_map<int32_t, Ins *>;
 using LiteralIndex = uint16_t;

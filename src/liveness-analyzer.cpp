@@ -15,7 +15,11 @@ namespace optimizer {
 
 LivenessAnalyzer::LivenessAnalyzer() : Pass() {}
 
-LivenessAnalyzer::~LivenessAnalyzer() {}
+LivenessAnalyzer::~LivenessAnalyzer() {
+  for (auto it : edges_) {
+    delete it;
+  }
+}
 
 bool LivenessAnalyzer::run(Optimizer *optimizer, Bytecode *byte_code) {
   assert(optimizer->isSucceeded(PassKind::IR_BUILDER));
@@ -28,23 +32,97 @@ bool LivenessAnalyzer::run(Optimizer *optimizer, Bytecode *byte_code) {
   BasicBlockList &bbs = byte_code->basicBlockList();
   InstList &insns = byte_code->instructions();
 
-  computeDefsUses(insns);
+  computeDefsUses(bbs, insns);
   computeLiveInOut(bbs);
   computeInOut(bbs);
 
   return true;
 }
 
-bool LivenessAnalyzer::isLive(uint32_t reg, BasicBlock *from, BasicBlock *to) {
-  RegSet &uses = from->uses();
-  RegSet &defs = to->defs();
+void LivenessAnalyzer::findDirectPath(BasicBlockOrderedSet &path,
+                                      BasicBlock *from, BasicBlock *to) {
+  if (from == to) {
+    to->addFlag(BasicBlockFlags::FOUND);
+    return;
+  }
 
-  for (auto use : uses) {
-    if (defs.find(use) != defs.end()) {
-      return false;
+  from->iterateSuccessors([this, &path, to](BasicBlock *child) {
+    if (!path.insert(child).second || to->hasFlag(BasicBlockFlags::FOUND)) {
+      // found a circle
+      return;
+    }
+
+    if (child == to) {
+      BasicBlockSet &defs = defs_.find(current_reg_)->second;
+
+      // If the direct path's blocks passes through any definition of reg
+      // then reg is not live in bb
+      for (auto p : path) {
+        if (defs.find(p) != defs.end()) {
+          return;
+        }
+      }
+
+      to->addFlag(BasicBlockFlags::FOUND);
+      return;
+    }
+
+    findDirectPath(path, child, to);
+  });
+}
+
+bool LivenessAnalyzer::isLive(uint32_t reg, BasicBlock *from, BasicBlock *to) {
+  if (!from->isValid() || !to->isValid()) {
+    return false;
+  }
+  // if (from->uses().find(reg) == from->uses().end() &&
+  //     from->defs().find(reg) == from->defs().end()) {
+  //   return false;
+  // }
+
+  Edge *edge = new Edge(from, to);
+  auto edge_res = edges_.find(edge);
+
+  if (edge_res == edges_.end()) {
+    edges_.insert(edge);
+    edge->live().resize(regs_number_);
+    std::fill(edge->live().begin(), edge->live().end(), -1);
+  } else {
+    delete edge;
+    edge = *edge_res;
+
+    if (edge->live()[reg] != -1) {
+      return edge->live()[reg];
     }
   }
-  return true;
+
+  auto res = uses_.find(reg);
+
+  if (res == uses_.end()) {
+    return false;
+  }
+
+  for (auto &use : res->second) {
+    BasicBlockOrderedSet path;
+    findDirectPath(path, to, use);
+    // LOG("FIND_PATH " << reg << " FROM: " << from->id() << " TO: " <<
+    // use->id());
+
+    // Find direct path from to -> use(reg)
+    if (use->hasFlag(BasicBlockFlags::FOUND)) {
+      use->clearFlag(BasicBlockFlags::FOUND);
+
+      LOG("REG " << reg << " LIVE ON EDGE: " << from->id() << " TO:" << to->id()
+                 << " USE: " << use->id());
+      edge->live()[reg] = 1;
+      return true;
+    }
+    // LOG("REG " << reg << " DEAD ON EDGE: " << from->id() << " TO:" <<
+    // to->id());
+  }
+
+  edge->live()[reg] = 0;
+  return false;
 }
 
 bool LivenessAnalyzer::isLiveInAt(uint32_t reg, BasicBlock *bb) {
@@ -64,52 +142,83 @@ bool LivenessAnalyzer::isLiveOutAt(uint32_t reg, BasicBlock *bb) {
   return isLiveInAt(reg, bb);
 }
 
-void LivenessAnalyzer::computeDefsUses(InstList &insns) {
+void LivenessAnalyzer::computeDefsUses(BasicBlockList &bbs, InstList &insns) {
+
+  for (size_t i = 0; i < regs_number_; i++) {
+    defs_.insert({i, {bbs[0]}});
+    bbs[0]->defs().insert(i);
+  }
+
   for (auto ins : insns) {
     if (ins->hasFlag(InstFlags::WRITE_REG)) {
       ins->bb()->defs().insert(ins->writeReg());
+
+      auto res = defs_.find(ins->writeReg());
+      if (res == defs_.end()) {
+        defs_.insert({ins->writeReg(), {ins->bb()}});
+      } else {
+        res->second.insert(ins->bb());
+      }
+
       LOG("  "
           << "REG: " << ins->writeReg()
           << " defined by BB: " << ins->bb()->id());
     }
 
     if (ins->hasFlag(InstFlags::READ_REG)) {
-      ins->bb()->uses().insert(ins->readReg());
-      LOG("  "
-          << "REG: " << ins->readReg() << " used by BB: " << ins->bb()->id());
+      for (auto reg : ins->readRegs()) {
+        ins->bb()->uses().insert(reg);
+
+        auto res = uses_.find(reg);
+        if (res == uses_.end()) {
+          uses_.insert({reg, {ins->bb()}});
+        } else {
+          res->second.insert(ins->bb());
+        }
+
+        LOG("  "
+            << "REG: " << reg << " used by BB: " << ins->bb()->id());
+      }
     }
   }
 }
 
 void LivenessAnalyzer::computeLiveInOut(BasicBlockList &bbs) {
-  for (uint32_t i = 0; i < regs_number_; i++) {
+  for (uint32_t current_reg_ = 0; current_reg_ < regs_number_; current_reg_++) {
     for (auto bb : bbs) {
       for (auto succ : bb->successors()) {
-        if (isLive(i, bb, succ)) {
-          bb->liveOut().insert(i);
+        if (isLive(current_reg_, bb, succ)) {
+          bb->liveOut().insert(current_reg_);
         }
       }
 
       for (auto pred : bb->predecessors()) {
-        if (isLive(i, pred, bb)) {
-          bb->liveIn().insert(i);
+        if (isLive(current_reg_, pred, bb)) {
+          bb->liveIn().insert(current_reg_);
         }
       }
     }
   }
+  LOG("------------------------------------------");
 
   for (auto bb : bbs) {
-    LOG("LIVE-IN BB " << bb->id());
+    LOG("BB " << bb->id() << ":");
+    std::stringstream ss;
     for (auto li : bb->liveIn()) {
-      LOG("  "
-          << "REG :" << li);
+      ss << li << ", ";
     }
-    LOG("LIVE-OUT BB " << bb->id());
+    LOG(" LIVE-IN: " << ss.str());
+    ss.str("");
+
     for (auto lo : bb->liveOut()) {
-      LOG("  "
-          << "REG :" << lo);
+      ss << lo << ", ";
     }
+
+    LOG(" LIVE-OUT: " << ss.str());
+    ss.str("");
   }
+
+  LOG("------------------------------------------");
 }
 
 bool LivenessAnalyzer::setsEqual(RegSet &a, RegSet &b) {
@@ -170,18 +279,26 @@ void LivenessAnalyzer::computeInOut(BasicBlockList &bbs) {
     }
   }
 
+  LOG("------------------------------------------");
+
   for (auto bb : bbs) {
-    LOG("IN BB " << bb->id());
-    for (auto in : bb->in()) {
-      LOG("  "
-          << "REG :" << in);
+    LOG("BB " << bb->id() << ":");
+    std::stringstream ss;
+    for (auto i : bb->in()) {
+      ss << i << ", ";
     }
-    LOG("OUT BB " << bb->id());
-    for (auto out : bb->out()) {
-      LOG("  "
-          << "REG :" << out);
+    LOG(" IN: " << ss.str());
+    ss.str("");
+
+    for (auto o : bb->out()) {
+      ss << o << ", ";
     }
+
+    LOG(" OUT: " << ss.str());
+    ss.str("");
   }
+
+  LOG("------------------------------------------");
 }
 
 } // namespace optimizer

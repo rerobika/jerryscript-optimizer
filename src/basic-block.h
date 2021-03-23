@@ -24,6 +24,7 @@ namespace optimizer {
 enum class BasicBlockFlags {
   NONE = 0,
   INVALID = 1 << 0,
+  FOUND = 1 << 1,
 };
 
 enum class BasicBlockOptions {
@@ -48,12 +49,13 @@ enum class BasicBlockType {
 };
 
 using SuccessorTraverser = std::function<void(BasicBlock *child)>;
+using PredecessorTraverser = SuccessorTraverser;
 
 class BasicBlock {
 public:
   BasicBlock() : BasicBlock(INVALID_BASIC_BLOCK_ID) {}
   BasicBlock(BasicBlockID id)
-      : id_(id), type_(BasicBlockType::NONE), flags_(0) {}
+      : type_(BasicBlockType::NONE), flags_(0), id_(id) {}
 
   auto &predecessors() { return predecessors_; }
   auto &successors() { return successors_; }
@@ -98,6 +100,12 @@ public:
     }
   }
 
+  void iteratePredecessors(PredecessorTraverser cb) {
+    for (auto bb : predecessors_) {
+      cb(bb);
+    }
+  }
+
   static void split(BasicBlock *bb_from, BasicBlock *bb_into, int32_t from);
 
   void addFlag(BasicBlockFlags flags) {
@@ -106,6 +114,10 @@ public:
 
   bool hasFlag(BasicBlockFlags flags) {
     return (flags_ & static_cast<uint32_t>(flags)) != 0;
+  }
+
+  void clearFlag(BasicBlockFlags flags) {
+    flags_ &= ~static_cast<uint32_t>(flags);
   }
 
   static BasicBlock *create(BasicBlockID id = 0) {
@@ -155,7 +167,6 @@ private:
   BasicBlock *dominated_;
   BasicBlockList dominators_;
   InstList insts_;
-  BasicBlockID id_;
   BasicBlockType type_;
   uint32_t flags_;
 
@@ -165,6 +176,8 @@ private:
   RegSet live_out_;
   RegSet in_;
   RegSet out_;
+
+  BasicBlockID id_;
 };
 
 } // namespace optimizer

@@ -268,7 +268,7 @@ public:
   auto offset() const { return offset_; }
   auto size() const { return size_; }
   auto bb() { return bb_; }
-  auto readReg() const { return read_reg_; }
+  auto readRegs() const { return read_regs_; }
   auto writeReg() const { return write_reg_; }
 
   bool isJump() const { return hasFlag(InstFlags::JUMP); }
@@ -370,9 +370,9 @@ public:
     write_reg_ = index;
   }
 
-  void setReadReg(uint32_t index) {
+  void addReadReg(uint32_t index) {
     addFlag(InstFlags::READ_REG);
-    read_reg_ = index;
+    read_regs_.push_back(index);
   }
 
   friend std::ostream &operator<<(std::ostream &os, const Ins &inst) {
@@ -386,7 +386,10 @@ public:
                         : inst.opcode_.CBCopcode()];
 
     if (inst.hasFlag(InstFlags::READ_REG)) {
-      os << " read: " << inst.read_reg_ << " ";
+      os << " read: ";
+      for (auto reg : inst.read_regs_) {
+        os << reg << ", ";
+      }
     }
 
     if (inst.hasFlag(InstFlags::WRITE_REG)) {
@@ -412,7 +415,7 @@ private:
   uint32_t flags_;
   int32_t offset_;
   int32_t size_;
-  uint32_t read_reg_;
+  std::vector<uint32_t> read_regs_;
   uint32_t write_reg_;
 };
 

@@ -19,7 +19,7 @@ ValueRef Literal::toValueRef(Bytecode *byte_code) {
   case LiteralType::REGISTER: {
     assert(index() < byte_code->args().registerEnd());
     uint32_t reg_index = byte_code->toRegisterIndex(index());
-    byte_code->instructions().back()->setReadReg(reg_index);
+    byte_code->instructions().back()->addReadReg(reg_index);
     return byte_code->stack().getRegister(reg_index);
   }
   case LiteralType::IDENT: {
@@ -383,7 +383,7 @@ void Ins::decodeGroupOpcode() {
 
     if (value_index < byteCode()->args().registerEnd()) {
       uint32_t reg_index = byteCode()->toRegisterIndex(value_index);
-      setReadReg(reg_index);
+      addReadReg(reg_index);
       lit_value = stack().getRegister(reg_index);
     } else {
       lit_value = Value::_object();
@@ -730,7 +730,7 @@ void Ins::decodeGroupOpcode() {
       stack().push(Value::_number(literal_index));
 
       uint32_t reg_index = byteCode()->toRegisterIndex(literal_index);
-      setReadReg(reg_index);
+      addReadReg(reg_index);
       stack().push(stack().getRegister(reg_index));
     } else {
       stack().push(Value::_object());
@@ -961,7 +961,7 @@ void Ins::decodeGroupOpcode() {
     if (literal_index < byteCode()->args().registerEnd()) {
 
       uint32_t reg_index = byteCode()->toRegisterIndex(literal_index);
-      setReadReg(reg_index);
+      addReadReg(reg_index);
       stack().setLeft(stack().getRegister(reg_index));
     } else {
       stack().setLeft(Value::_any());
