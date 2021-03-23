@@ -98,9 +98,7 @@ void LivenessAnalyzer::computeLiveOuts(BasicBlockList &bbs) {
   while (true) {
     bool changed = false;
     for (auto bb : bbs) {
-      // out'[n]
       RegSet current_out = bb->liveOut();
-
       computeLiveOut(bb);
 
       if (!setsEqual(current_out, bb->liveOut())) {
@@ -111,26 +109,26 @@ void LivenessAnalyzer::computeLiveOuts(BasicBlockList &bbs) {
     if (!changed) {
       break;
     }
+  }
+  
+  LOG("------------------------------------------");
 
-    LOG("------------------------------------------");
+  for (auto bb : bbs) {
+    std::stringstream ss;
 
-    for (auto bb : bbs) {
-      std::stringstream ss;
+    for (auto iter = bb->liveOut().begin(); iter != bb->liveOut().end();
+         iter++) {
+      ss << *iter;
 
-      for (auto iter = bb->liveOut().begin(); iter != bb->liveOut().end();
-           iter++) {
-        ss << *iter;
-
-        if (std::next(iter) != bb->liveOut().end()) {
-          ss << ", ";
-        }
+      if (std::next(iter) != bb->liveOut().end()) {
+        ss << ", ";
       }
-
-      LOG("BB " << bb->id() << " OUT: " << ss.str());
     }
 
-    LOG("------------------------------------------");
+    LOG("BB " << bb->id() << " OUT: " << ss.str());
   }
+
+  LOG("------------------------------------------");
 }
 
 } // namespace optimizer

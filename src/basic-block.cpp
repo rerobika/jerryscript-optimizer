@@ -143,7 +143,7 @@ void BasicBlock::removeEmpty() {
   remove();
 }
 
-void BasicBlock::split(BasicBlock *bb_from, BasicBlock *bb_into, int32_t from) {
+void BasicBlock::split(BasicBlock *bb_from, BasicBlock *bb_into, uint32_t from) {
   LOG("Split BB:" << bb_from->id() << " to:" << bb_into->id()
                   << " from:" << from);
   bool copied_anything = false;

@@ -413,8 +413,8 @@ private:
   BasicBlock *bb_;
   uint32_t payload_;
   uint32_t flags_;
-  int32_t offset_;
-  int32_t size_;
+  uint32_t offset_;
+  uint32_t size_;
   std::vector<uint32_t> read_regs_;
   uint32_t write_reg_;
 };
