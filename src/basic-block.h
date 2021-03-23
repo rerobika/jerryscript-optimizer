@@ -16,36 +16,10 @@ namespace optimizer {
 
 #define INVALID_BASIC_BLOCK_ID UINT32_MAX
 
-// static const char *basic_block_type_names[] = {
-//     "cond-case-1", "cond-case-2", "loop-init",   "loop-test", "loop-body",
-//     "loop-update", "try-block",   "catch-block", "finally-block",
-// };
-
 enum class BasicBlockFlags {
   NONE = 0,
   INVALID = 1 << 0,
   FOUND = 1 << 1,
-};
-
-enum class BasicBlockOptions {
-  NONE,
-  LOOP_TEST,
-  COND_CASE_1,
-  LOOP_BODY,
-  LOOP_CONTEXT_BODY
-};
-
-enum class BasicBlockType {
-  CONDTITION_CASE_1,
-  CONDTITION_CASE_2,
-  LOOP_INIT,
-  LOOP_TEST,
-  LOOP_BODY,
-  LOOP_UPDATE,
-  TRY_BLOCK,
-  CATCH_BLOCK,
-  FINALLY_BLOCK,
-  NONE,
 };
 
 using SuccessorTraverser = std::function<void(BasicBlock *child)>;
@@ -54,8 +28,7 @@ using PredecessorTraverser = SuccessorTraverser;
 class BasicBlock {
 public:
   BasicBlock() : BasicBlock(INVALID_BASIC_BLOCK_ID) {}
-  BasicBlock(BasicBlockID id)
-      : type_(BasicBlockType::NONE), flags_(0), id_(id) {}
+  BasicBlock(BasicBlockID id) : flags_(0), id_(id) {}
 
   auto &predecessors() { return predecessors_; }
   auto &successors() { return successors_; }
@@ -64,7 +37,6 @@ public:
 
   auto &insns() { return insts_; }
   auto id() const { return id_; }
-  auto type() const { return type_; }
 
   auto &defs() { return defs_; }
   auto &uses() { return uses_; }
@@ -79,8 +51,6 @@ public:
 
   bool isEmpty() const { return insts_.empty(); }
   bool isInaccessible() const { return predecessors_.empty(); }
-
-  void setType(BasicBlockType type) { type_ = type; }
 
   void addIns(Ins *inst);
   void addPredecessor(BasicBlock *bb);
@@ -131,12 +101,6 @@ public:
        << std::endl;
     ;
 
-    // if (bb.type() != BasicBlockType::NONE) {
-    //   os << "Type: " <<
-    //   basic_block_type_names[static_cast<uint32_t>(bb.type())]
-    //      << std::endl;
-    // }
-
     os << "predecessors: [";
     for (size_t i = 0; i < bb.predecessors_.size(); i++) {
       auto pred = bb.predecessors_[i];
@@ -162,14 +126,16 @@ public:
   }
 
 private:
+  // IR-builder
+  InstList insts_;
+
+  // Dominator
   BasicBlockList predecessors_;
   BasicBlockList successors_;
   BasicBlock *dominated_;
   BasicBlockList dominators_;
-  InstList insts_;
-  BasicBlockType type_;
-  uint32_t flags_;
 
+  // Liveness
   RegSet defs_;
   RegSet uses_;
   RegSet live_in_;
@@ -177,6 +143,7 @@ private:
   RegSet in_;
   RegSet out_;
 
+  uint32_t flags_;
   BasicBlockID id_;
 };
 
