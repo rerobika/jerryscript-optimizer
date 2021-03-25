@@ -41,6 +41,7 @@ public:
   auto &ue() { return ue_; }
   auto &kill() { return kill_; }
   auto &liveOut() { return live_out_; }
+  auto &liveRanges() { return live_ranges_; }
 
   auto &locals() { return locals_; }
 
@@ -139,7 +140,10 @@ private:
   RegSet kill_;
   RegSet live_out_;
 
-  // RegisterCompresser
+  // Live Ranges
+  LiveRangeMap live_ranges_;
+
+  // RegallocLinearScan
   RegSet locals_;
 
   uint32_t flags_;

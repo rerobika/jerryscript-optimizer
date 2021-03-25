@@ -20,6 +20,7 @@ namespace optimizer {
 
 class Ins;
 class BasicBlock;
+class LiveInterval;
 
 using RegList = std::vector<uint32_t>;
 using RegSet = std::unordered_set<uint32_t>;
@@ -31,6 +32,11 @@ using InsList = std::vector<Ins *>;
 using OffsetMap = std::unordered_map<int32_t, Ins *>;
 using LiteralIndex = uint16_t;
 using BasicBlockID = uint32_t;
+
+using LiveIntervalList = std::vector<LiveInterval*>;
+using RegLiveInterval = std::pair<uint32_t, LiveInterval*>;
+using RegLiveIntervalList = std::vector<RegLiveInterval>;
+using LiveRangeMap = std::unordered_map<uint32_t, std::vector<LiveInterval*>>;
 
 class BytecodeFlags {
 public:
@@ -170,6 +176,8 @@ public:
   auto &offsetToInst() { return inst_to_offset_; }
   auto &basicBlockList() { return bb_list_; }
 
+  auto &liveRanges() { return live_ranges_; }
+
   Ins *insAt(int32_t offset) { return offsetToInst().find(offset)->second; }
 
   size_t compiledCodesize() const {
@@ -214,6 +222,9 @@ private:
   InsList instructions_;
   OffsetMap inst_to_offset_;
   BasicBlockList bb_list_;
+
+  // Live Ranges
+  LiveRangeMap live_ranges_;
 };
 
 } // namespace optimizer

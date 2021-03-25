@@ -32,6 +32,8 @@ bool LivenessAnalyzer::run(Optimizer *optimizer, Bytecode *byte_code) {
 
   computeDefsUses(bbs, insns);
   computeLiveOuts(bbs);
+  // findLocals(bbs);
+  buildLiveRanges(byte_code, bbs);
 
   return true;
 }
@@ -110,7 +112,7 @@ void LivenessAnalyzer::computeLiveOuts(BasicBlockList &bbs) {
       break;
     }
   }
-  
+
   LOG("------------------------------------------");
 
   for (auto bb : bbs) {
@@ -129,6 +131,84 @@ void LivenessAnalyzer::computeLiveOuts(BasicBlockList &bbs) {
   }
 
   LOG("------------------------------------------");
+}
+
+// void LivenessAnalyzer::findLocals(BasicBlockList &bbs) {
+//   for (auto &bb : bbs) {
+//     for (auto def : bb->kill()) {
+//       if (bb->liveOut().find(def) == bb->liveOut().end()) {
+//         bb->locals().insert(def);
+//       }
+//     }
+//   }
+
+//   for (auto &bb : bbs) {
+//     std::stringstream ss;
+
+//     for (auto iter = bb->locals().begin(); iter != bb->locals().end();
+//     iter++) {
+//       ss << *iter;
+
+//       if (std::next(iter) != bb->locals().end()) {
+//         ss << ", ";
+//       }
+//     }
+
+//     LOG("BB " << bb->id() << " LOCALS: " << ss.str());
+//   }
+// }
+
+void LivenessAnalyzer::buildLiveRanges(Bytecode *byte_code,
+                                       BasicBlockList &bbs) {
+  for (auto bb : bbs) {
+    for (auto ins : bb->insns()) {
+      if (ins->hasFlag(InstFlags::READ_REG)) {
+        for (auto reg : ins->readRegs()) {
+          auto res = byte_code->liveRanges().find(reg);
+          if (res == byte_code->liveRanges().end()) {
+            byte_code->liveRanges().insert(
+                {reg,
+                 {new LiveInterval(bb->insns()[0]->offset(), ins->offset())}});
+            continue;
+          }
+
+          res->second.back()->setEnd(ins->offset());
+        }
+      }
+
+      if (ins->hasFlag(InstFlags::WRITE_REG)) {
+        uint32_t write_reg = ins->writeReg();
+
+        auto res = byte_code->liveRanges().find(write_reg);
+        if (res == byte_code->liveRanges().end()) {
+          byte_code->liveRanges().insert(
+              {write_reg, {new LiveInterval(ins->offset())}});
+          continue;
+        }
+
+        res->second.back()->setEnd(ins->offset());
+        res->second.push_back(new LiveInterval(ins->offset()));
+      }
+    }
+  }
+
+  for (auto &li_range : byte_code->liveRanges()) {
+    LiveIntervalList &ranges = li_range.second;
+    for (auto iter = ranges.begin(); iter != ranges.end();) {
+      if ((*iter)->end() == 0) {
+        iter = ranges.erase(iter);
+        continue;
+      }
+      iter++;
+    }
+  }
+
+  for (auto &iter : byte_code->liveRanges()) {
+    LOG(" REG: " << iter.first);
+    for (auto res : iter.second) {
+      LOG(" li: " << *res);
+    }
+  }
 }
 
 } // namespace optimizer

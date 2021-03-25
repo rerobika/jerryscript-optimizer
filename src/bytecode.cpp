@@ -9,6 +9,7 @@
 #include "bytecode.h"
 #include "basic-block.h"
 #include "inst.h"
+#include "liveness-analyzer.h"
 
 extern "C" {
 #include "jerry-snapshot.h"
@@ -168,12 +169,17 @@ void Bytecode::buildInstructions() {
 }
 
 Bytecode::~Bytecode() {
+  for (auto iter : live_ranges_) {
+    for (auto li : iter.second) {
+      delete li;
+    }
+  }
+
   for (auto &bb : bb_list_) {
     delete bb;
   }
 
-  for (auto ins : instructions_)
-  {
+  for (auto ins : instructions_) {
     delete ins;
   }
 

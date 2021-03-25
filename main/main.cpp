@@ -53,7 +53,7 @@ int main(int argc, char const *argv[]) {
   optimizer.addPass(new optimizer::IRBuilder());
   optimizer.addPass(new optimizer::Dominator());
   optimizer.addPass(new optimizer::LivenessAnalyzer());
-  optimizer.addPass(new optimizer::RegisterCompresser());
+  optimizer.addPass(new optimizer::RegallocLinearScan());
   optimizer.run();
 
   return 0;

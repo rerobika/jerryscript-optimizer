@@ -33,8 +33,33 @@ private:
   void computeDefsUses(BasicBlockList &bbs, InsList &insns);
   void computeLiveOut(BasicBlock *bb);
   void computeLiveOuts(BasicBlockList &bbs);
+  void computeLiveRanges(BasicBlockList &bbs);
+  // void findLocals(BasicBlockList &bbs);
+  void buildLiveRanges(Bytecode *byte_code, BasicBlockList &bbs);
 
   uint32_t regs_count_;
+};
+
+class LiveInterval {
+public:
+  LiveInterval() : LiveInterval(0, 0) {}
+  LiveInterval(uint32_t start) : LiveInterval(start, 0) {}
+  LiveInterval(uint32_t start, uint32_t end) : start_(start), end_(end) {}
+
+  auto start() const { return start_; }
+  auto end() const { return end_; }
+
+  void setStart(uint32_t start) { start_ = start; }
+  void setEnd(uint32_t end) { end_ = end; }
+
+  friend std::ostream &operator<<(std::ostream &os, const LiveInterval &li) {
+    os << "start: " << li.start() << " end: " << li.end();
+    return os;
+  }
+
+private:
+  uint32_t start_;
+  uint32_t end_;
 };
 
 } // namespace optimizer
