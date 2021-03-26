@@ -97,11 +97,18 @@ Literal Ins::decodeLiteral(LiteralIndex index) {
     type = LiteralType::TEMPLATE;
   }
 
-  return {type, index};
+  Literal lit{type, index};
+
+  if (index >= byteCode()->args().registerEnd()) {
+    argument_.addLiteral(lit);
+  }
+
+  return lit;
 }
 
 void Ins::decodeArguments() {
   Argument argument(opcode().opcodeData().operands());
+  argument_ = argument;
 
   stack().resetOperands();
 
@@ -146,7 +153,6 @@ void Ins::decodeArguments() {
   }
   case OperandType::LITERAL: {
     Literal first_literal = decodeLiteral();
-    argument.setFirstLiteral(first_literal);
 
     stack().setLeft(first_literal.toValueRef(byteCode()));
     break;
@@ -154,8 +160,6 @@ void Ins::decodeArguments() {
   case OperandType::LITERAL_LITERAL: {
     Literal first_literal = decodeLiteral();
     Literal second_literal = decodeLiteral();
-    argument.setFirstLiteral(first_literal);
-    argument.setSecondLiteral(second_literal);
 
     stack().setLeft(first_literal.toValueRef(byteCode()));
     stack().setRight(second_literal.toValueRef(byteCode()));
@@ -163,7 +167,6 @@ void Ins::decodeArguments() {
   }
   case OperandType::STACK_LITERAL: {
     Literal first_literal = decodeLiteral();
-    argument.setFirstLiteral(first_literal);
     argument.setStackDelta(-1);
 
     stack().setLeft(first_literal.toValueRef(byteCode()));
@@ -172,7 +175,6 @@ void Ins::decodeArguments() {
   }
   case OperandType::THIS_LITERAL: {
     Literal first_literal = decodeLiteral();
-    argument.setFirstLiteral(first_literal);
 
     stack().setLeft(Value::_object());
     stack().setRight(first_literal.toValueRef(byteCode()));
@@ -181,8 +183,6 @@ void Ins::decodeArguments() {
   default:
     unreachable();
   }
-
-  argument_ = argument;
 }
 
 bool Ins::decodeCBCOpcode() {

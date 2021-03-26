@@ -41,8 +41,8 @@ int main(int argc, char const *argv[]) {
   buff << input_stream.rdbuf();
   auto input_str = buff.str();
 
-  optimizer::SnapshotReadWriter reader(input_str);
-  auto res = reader.read();
+  optimizer::SnapshotReadWriter snapshot(input_str);
+  auto res = snapshot.read();
 
   if (res.failed()) {
     std::cerr << "Snapshot parsing error: " << res.error() << std::endl;
@@ -55,6 +55,8 @@ int main(int argc, char const *argv[]) {
   optimizer.addPass(new optimizer::LivenessAnalyzer());
   optimizer.addPass(new optimizer::RegallocLinearScan());
   optimizer.run();
+
+  snapshot.write("optimized.snapshot", res.list());
 
   return 0;
 }

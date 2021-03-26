@@ -133,31 +133,6 @@ void LivenessAnalyzer::computeLiveOuts(BasicBlockList &bbs) {
   LOG("------------------------------------------");
 }
 
-// void LivenessAnalyzer::findLocals(BasicBlockList &bbs) {
-//   for (auto &bb : bbs) {
-//     for (auto def : bb->kill()) {
-//       if (bb->liveOut().find(def) == bb->liveOut().end()) {
-//         bb->locals().insert(def);
-//       }
-//     }
-//   }
-
-//   for (auto &bb : bbs) {
-//     std::stringstream ss;
-
-//     for (auto iter = bb->locals().begin(); iter != bb->locals().end();
-//     iter++) {
-//       ss << *iter;
-
-//       if (std::next(iter) != bb->locals().end()) {
-//         ss << ", ";
-//       }
-//     }
-
-//     LOG("BB " << bb->id() << " LOCALS: " << ss.str());
-//   }
-// }
-
 void LivenessAnalyzer::buildLiveRanges(Bytecode *byte_code,
                                        BasicBlockList &bbs) {
   for (auto bb : bbs) {
@@ -194,12 +169,10 @@ void LivenessAnalyzer::buildLiveRanges(Bytecode *byte_code,
 
   for (auto &li_range : byte_code->liveRanges()) {
     LiveIntervalList &ranges = li_range.second;
-    for (auto iter = ranges.begin(); iter != ranges.end();) {
-      if ((*iter)->end() == 0) {
-        iter = ranges.erase(iter);
-        continue;
+    for (auto range : ranges) {
+      if (range->end() == 0) {
+        range->setEnd(range->end());
       }
-      iter++;
     }
   }
 

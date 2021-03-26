@@ -63,7 +63,14 @@ SnapshotReadResult SnapshotReadWriter::read() {
   return {function_table};
 }
 
-SnapshotWriteResult SnapshotReadWriter::write(std::string &path) {
+SnapshotWriteResult SnapshotReadWriter::write(std::string path,
+                                              BytecodeList &list) {
+  for (auto &bytecode : list) {
+    if (!jerry_value_is_undefined(bytecode->function())) {
+      // TODO
+    }
+  }
+
   return {"unimplemented"};
 }
 

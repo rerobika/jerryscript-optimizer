@@ -207,6 +207,8 @@ public:
   uint8_t current() { return *byte_code_; };
   bool hasNext() { return byte_code_ < byte_code_end_; };
 
+  void update();
+
 private:
   void decodeHeader();
   void buildInstructions();
@@ -217,6 +219,7 @@ private:
   uint8_t *byte_code_start_;
   uint8_t *byte_code_end_;
   BytecodeFlags flags_;
+
   BytecodeArguments args_;
   LiteralPool literal_pool_;
   Stack stack_;

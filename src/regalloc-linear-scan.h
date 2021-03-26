@@ -36,6 +36,7 @@ private:
   void updateInstructions(Bytecode *byte_code);
 
   uint32_t regs_count_;
+  uint32_t new_regs_count_;
   RegLiveIntervalList intervals_;
 };
 

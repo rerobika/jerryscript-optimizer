@@ -13,7 +13,7 @@
 
 namespace optimizer {
 
-RegallocLinearScan::RegallocLinearScan() : Pass() {}
+RegallocLinearScan::RegallocLinearScan() : Pass(), new_regs_count_(0) {}
 
 RegallocLinearScan::~RegallocLinearScan() {}
 
@@ -74,14 +74,23 @@ void RegallocLinearScan::computeRegisterMapping(Bytecode *byte_code) {
       return;
     }
 
+    if (iter.second->start() == iter.second->end()) {
+      continue;
+    }
+
     iter.first.second = registers.back();
     registers.pop_back();
     active.push_back(iter);
+
+    if (active.size() > new_regs_count_) {
+      new_regs_count_ = active.size();
+    }
   }
 
   LOG("----------------------------------------------------");
+  LOG("NEW TOTAL REGS: " << new_regs_count_);
   for (auto iter : intervals_) {
-    LOG("REG: " << iter.first.first << " it: " << *iter.second);
+    LOG("REG: " << iter.first.second << " it: " << *iter.second);
   }
   LOG("----------------------------------------------------");
 }
@@ -108,16 +117,47 @@ void RegallocLinearScan::expireOldIntervals(RegLiveIntervalList &active,
       return;
     }
 
-    registers.push_back((*iter).first.first);
+    registers.push_back((*iter).first.second);
     iter = active.erase(iter);
   }
 }
 
 void RegallocLinearScan::updateInstructions(Bytecode *byte_code) {
+  if (new_regs_count_ == regs_count_) {
+    return;
+  }
+
+  int32_t offset = new_regs_count_ - regs_count_;
+
   OffsetMap ins_offsets = byte_code->offsetToInst();
 
   for (auto &iter : intervals_) {
     for (auto ins : byte_code->instructions()) {
+      if (ins->hasFlag(InstFlags::READ_REG)) {
+        for (auto &reg : ins->readRegs()) {
+          if (iter.first.first == reg) {
+            reg = iter.first.second;
+          }
+        }
+      }
+
+      if (ins->hasFlag(InstFlags::WRITE_REG)) {
+        uint32_t &write_reg = ins->writeReg();
+
+        if (iter.first.first == write_reg) {
+          write_reg = iter.first.second;
+        }
+      }
+    }
+  }
+
+  for (auto ins : byte_code->instructions()) {
+    Argument &arg = ins->argument();
+    for (auto &lit : arg.literals()) {
+      lit.moveIndex(offset);
+    }
+
+    for (auto &iter : intervals_) {
       if (ins->hasFlag(InstFlags::READ_REG)) {
         for (auto &reg : ins->readRegs()) {
           if (iter.first.first == reg) {

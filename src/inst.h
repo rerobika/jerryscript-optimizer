@@ -83,6 +83,12 @@ public:
   auto type() const { return type_; }
   auto index() const { return index_; }
 
+  void setIndex(LiteralIndex index) { index_ = index; }
+
+  void moveIndex(int32_t offset) {
+    index_ = static_cast<LiteralIndex>(index_ + offset);
+  }
+
 private:
   LiteralType type_;
   LiteralIndex index_;
@@ -96,8 +102,7 @@ public:
   auto branchOffset() const { return branch_offset_; }
   auto type() const { return type_; }
   auto stackDelta() const { return stack_delta_; }
-  auto &firstLiteral() { return first_literal_; }
-  auto &secondLiteral() { return second_literal_; }
+  auto &literals() { return literals_; }
 
   void setBranchOffset(int32_t offset) {
     assert(type() == OperandType::BRANCH);
@@ -110,24 +115,18 @@ public:
     stack_delta_ = delta;
   }
 
-  void setFirstLiteral(Literal &literal) {
-    assert(isLiteral());
-    first_literal_ = literal;
-  }
-
-  void setSecondLiteral(Literal &literal) {
-    assert(type() == OperandType::LITERAL_LITERAL);
-    second_literal_ = literal;
-  }
+  void addLiteral(Literal &literal) { literals_.push_back(literal); }
 
   bool isLiteral() const { return type() >= OperandType::LITERAL; }
+  bool isLiteralLiteral() const {
+    return type() == OperandType::LITERAL_LITERAL;
+  }
 
 private:
   OperandType type_;
   int32_t branch_offset_;
   int32_t stack_delta_;
-  Literal first_literal_;
-  Literal second_literal_;
+  std::vector<Literal> literals_;
 };
 
 class OpcodeData {
@@ -322,6 +321,7 @@ public:
 
   void setStringLiteral() {
     Literal literal = decodeStringLiteral();
+    argument_.addLiteral(literal);
     setStringLiteral(literal);
   }
 
@@ -400,6 +400,20 @@ public:
       os << " offset: " << inst.argument_.branchOffset() << "(->"
          << inst.offset_ + inst.argument_.branchOffset() << ")";
     }
+
+    if (!const_cast<Ins &>(inst).argument().literals().empty()) {
+      os << " lits: (";
+      auto &literals = const_cast<Ins &>(inst).argument().literals();
+      for (auto iter = literals.begin(); iter != literals.end(); iter++) {
+        os << (*iter).index();
+
+        if (std::next(iter) != literals.end()) {
+          os << ", ";
+        }
+      }
+      os << ")";
+    }
+
     return os;
   }
 

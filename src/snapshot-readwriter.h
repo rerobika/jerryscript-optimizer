@@ -20,7 +20,7 @@ public:
   SnapshotReadResult(std::string error) : error_(error) {}
   ~SnapshotReadResult();
 
-  auto &list() { return list_; }
+  auto  &list() { return list_; }
   auto error() const { return error_; }
 
   bool failed() { return error_.length() != 0; }
@@ -46,7 +46,7 @@ public:
   ~SnapshotReadWriter();
 
   SnapshotReadResult read();
-  SnapshotWriteResult write(std::string &path);
+  SnapshotWriteResult write(std::string path, BytecodeList &list);
 
   auto snapshot() const { return snapshot_; }
   auto bytecode() const { return bytecode_; }

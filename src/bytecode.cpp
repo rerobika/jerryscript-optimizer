@@ -186,4 +186,6 @@ Bytecode::~Bytecode() {
   ecma_free_value(function_);
 };
 
+void Bytecode::update() {}
+
 } // namespace optimizer
