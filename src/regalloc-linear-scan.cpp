@@ -28,6 +28,7 @@ bool RegallocLinearScan::run(Optimizer *optimizer, Bytecode *byte_code) {
 
   sortIntervals(byte_code);
   computeRegisterMapping(byte_code);
+  updateInstructions(byte_code);
 
   return true;
 }
@@ -36,7 +37,7 @@ void RegallocLinearScan::sortIntervals(Bytecode *byte_code) {
 
   for (auto &iter : byte_code->liveRanges()) {
     for (auto res : iter.second) {
-      intervals_.push_back({iter.first, res});
+      intervals_.push_back({{iter.first, iter.first}, res});
     }
   }
 
@@ -54,7 +55,7 @@ void RegallocLinearScan::sortIntervals(Bytecode *byte_code) {
             });
 
   for (auto iter : intervals_) {
-    LOG("REG: " << iter.first << " it: " << *iter.second);
+    LOG("REG: " << iter.first.first << " it: " << *iter.second);
   }
 }
 
@@ -73,14 +74,14 @@ void RegallocLinearScan::computeRegisterMapping(Bytecode *byte_code) {
       return;
     }
 
-    iter.first = registers.back();
+    iter.first.second = registers.back();
     registers.pop_back();
     active.push_back(iter);
   }
 
   LOG("----------------------------------------------------");
   for (auto iter : intervals_) {
-    LOG("REG: " << iter.first << " it: " << *iter.second);
+    LOG("REG: " << iter.first.first << " it: " << *iter.second);
   }
   LOG("----------------------------------------------------");
 }
@@ -107,8 +108,36 @@ void RegallocLinearScan::expireOldIntervals(RegLiveIntervalList &active,
       return;
     }
 
-    registers.push_back((*iter).first);
+    registers.push_back((*iter).first.first);
     iter = active.erase(iter);
+  }
+}
+
+void RegallocLinearScan::updateInstructions(Bytecode *byte_code) {
+  OffsetMap ins_offsets = byte_code->offsetToInst();
+
+  for (auto &iter : intervals_) {
+    for (auto ins : byte_code->instructions()) {
+      if (ins->hasFlag(InstFlags::READ_REG)) {
+        for (auto &reg : ins->readRegs()) {
+          if (iter.first.first == reg) {
+            reg = iter.first.second;
+          }
+        }
+      }
+
+      if (ins->hasFlag(InstFlags::WRITE_REG)) {
+        uint32_t &write_reg = ins->writeReg();
+
+        if (iter.first.first == write_reg) {
+          write_reg = iter.first.second;
+        }
+      }
+    }
+  }
+
+  for (auto bb : byte_code->basicBlockList()) {
+    LOG(*bb);
   }
 }
 

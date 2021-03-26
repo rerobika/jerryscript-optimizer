@@ -33,6 +33,7 @@ private:
   void computeRegisterMapping(Bytecode *byte_code);
   void expireOldIntervals(RegLiveIntervalList &active, RegList &registers,
                           RegLiveInterval &interval);
+  void updateInstructions(Bytecode *byte_code);
 
   uint32_t regs_count_;
   RegLiveIntervalList intervals_;

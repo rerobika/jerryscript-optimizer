@@ -33,10 +33,11 @@ using OffsetMap = std::unordered_map<int32_t, Ins *>;
 using LiteralIndex = uint16_t;
 using BasicBlockID = uint32_t;
 
-using LiveIntervalList = std::vector<LiveInterval*>;
-using RegLiveInterval = std::pair<uint32_t, LiveInterval*>;
+using LiveIntervalList = std::vector<LiveInterval *>;
+using RegLiveInterval =
+    std::pair<std::pair<uint32_t, uint32_t>, LiveInterval *>;
 using RegLiveIntervalList = std::vector<RegLiveInterval>;
-using LiveRangeMap = std::unordered_map<uint32_t, std::vector<LiveInterval*>>;
+using LiveRangeMap = std::unordered_map<uint32_t, std::vector<LiveInterval *>>;
 
 class BytecodeFlags {
 public:
@@ -173,7 +174,7 @@ public:
   auto literalPool() const { return literal_pool_; }
   auto &stack() { return stack_; }
   auto &instructions() { return instructions_; }
-  auto &offsetToInst() { return inst_to_offset_; }
+  auto &offsetToInst() { return offset_to_ins_; }
   auto &basicBlockList() { return bb_list_; }
 
   auto &liveRanges() { return live_ranges_; }
@@ -220,7 +221,7 @@ private:
   LiteralPool literal_pool_;
   Stack stack_;
   InsList instructions_;
-  OffsetMap inst_to_offset_;
+  OffsetMap offset_to_ins_;
   BasicBlockList bb_list_;
 
   // Live Ranges

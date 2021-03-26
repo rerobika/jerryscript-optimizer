@@ -52,7 +52,7 @@ public:
   void shift(size_t from, size_t offset);
 
   ValueRef &getRegister(int i) { return registers_[i]; }
-  ValueRef &getStack(int i) { return data_[i]; }
+  ValueRef &getStack(int i) { return data_[0]; }
   ValueRef &getStack() { return data_[stackSize()]; }
 
   ValueRef pop();
