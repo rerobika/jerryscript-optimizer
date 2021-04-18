@@ -135,17 +135,17 @@ void Ins::decodeArguments() {
       offset = -offset;
     }
 
-    argument.setBranchOffset(offset);
+    argument_.setBranchOffset(offset);
     break;
   }
   case OperandType::STACK: {
-    argument.setStackDelta(-1);
+    argument_.setStackDelta(-1);
 
     stack().setLeft(stack().pop());
     break;
   }
   case OperandType::STACK_STACK: {
-    argument.setStackDelta(-2);
+    argument_.setStackDelta(-2);
 
     stack().setRight(stack().pop());
     stack().setLeft(stack().pop());
