@@ -57,7 +57,6 @@ ValueRef Literal::toValueRef(Bytecode *byte_code) {
   case LiteralType::REGISTER: {
     assert(index() < byte_code->args().registerEnd());
     uint32_t reg_index = byte_code->toRegisterIndex(index());
-    byte_code->instructions().back()->addReadReg(reg_index);
     return byte_code->stack().getRegister(reg_index);
   }
   case LiteralType::IDENT: {
@@ -137,9 +136,11 @@ Literal Ins::decodeLiteral(LiteralIndex index) {
 
   Literal lit{type, index};
 
-  if (index >= byteCode()->args().registerEnd()) {
-    argument_.addLiteral(lit);
+  if (index < byteCode()->args().registerEnd()) {
+    addFlag(InstFlags::READ_REG);
+    read_regs_.push_back(index);
   }
+  argument_.addLiteral(lit);
 
   return lit;
 }
@@ -388,6 +389,7 @@ void Ins::decodeGroupOpcode() {
   case VM_OC_VAR_EVAL: {
     if (opcode().is(CBC_CREATE_VAR_FUNC_EVAL)) {
       Literal literal = decodeTemplateLiteral();
+      argument_.addLiteral(literal);
       setLiteralValue(literal);
     }
 
@@ -397,6 +399,7 @@ void Ins::decodeGroupOpcode() {
   case VM_OC_EXT_VAR_EVAL: {
     if (opcode().is(CBC_EXT_CREATE_VAR_FUNC_EVAL)) {
       Literal literal = decodeTemplateLiteral();
+      argument_.addLiteral(literal);
       setLiteralValue(literal);
     }
 

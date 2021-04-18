@@ -20,7 +20,7 @@ public:
   SnapshotReadResult(std::string error) : error_(error) {}
   ~SnapshotReadResult();
 
-  auto  &list() { return list_; }
+  auto &list() { return list_; }
   auto error() const { return error_; }
 
   bool failed() { return error_.length() != 0; }
@@ -33,7 +33,9 @@ private:
 class SnapshotWriteResult {
 public:
   SnapshotWriteResult(std::string error) : error_(error) {}
+  SnapshotWriteResult() : error_("") {}
 
+  bool failed() const { return error_.size() != 0; }
   auto error() const { return error_; }
 
 private:
@@ -46,12 +48,14 @@ public:
   ~SnapshotReadWriter();
 
   SnapshotReadResult read();
-  SnapshotWriteResult write(std::string& path, BytecodeList &list);
+  SnapshotWriteResult write(std::string &path, BytecodeList &list);
 
   auto snapshot() const { return snapshot_; }
   auto bytecode() const { return bytecode_; }
 
 private:
+  uint32_t writeSnapshot(Bytecode *bytecode, uint32_t generate_snapshot_opts,
+                         uint32_t *buffer_p, uint32_t buffer_size);
   std::string snapshot_;
   std::shared_ptr<Bytecode> bytecode_;
 };

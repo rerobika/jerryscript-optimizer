@@ -1,0 +1,98 @@
+diff --git a/jerry-core/api/jerry-snapshot.c b/jerry-core/api/jerry-snapshot.c
+index 83562582..fa3d36a4 100644
+--- a/jerry-core/api/jerry-snapshot.c
++++ b/jerry-core/api/jerry-snapshot.c
+@@ -34,7 +34,7 @@
+  *
+  * @return configuration flags
+  */
+-static inline uint32_t JERRY_ATTR_ALWAYS_INLINE
++inline uint32_t JERRY_ATTR_ALWAYS_INLINE
+ snapshot_get_global_flags (bool has_regex, /**< regex literal is present */
+                            bool has_class) /**< class literal is present */
+ {
+@@ -81,17 +81,6 @@ snapshot_check_global_flags (uint32_t global_flags) /**< global flags */
+ 
+ #if ENABLED (JERRY_SNAPSHOT_SAVE)
+ 
+-/**
+- * Variables required to take a snapshot.
+- */
+-typedef struct
+-{
+-  size_t snapshot_buffer_write_offset;
+-  ecma_value_t snapshot_error;
+-  bool regex_found;
+-  bool class_found;
+-} snapshot_globals_t;
+-
+ /** \addtogroup jerrysnapshot Jerry snapshot operations
+  * @{
+  */
+@@ -105,7 +94,7 @@ typedef struct
+  * @return true - if write was successful, i.e. offset + data_size doesn't exceed buffer size,
+  *         false - otherwise
+  */
+-static inline bool JERRY_ATTR_ALWAYS_INLINE
++inline bool JERRY_ATTR_ALWAYS_INLINE
+ snapshot_write_to_buffer_by_offset (uint8_t *buffer_p, /**< buffer */
+                                     size_t buffer_size, /**< size of buffer */
+                                     size_t *in_out_buffer_offset_p,  /**< [in,out] offset to write to
+@@ -138,7 +127,7 @@ snapshot_write_to_buffer_by_offset (uint8_t *buffer_p, /**< buffer */
+  *
+  * @return start offset
+  */
+-static uint32_t
++uint32_t
+ snapshot_add_compiled_code (ecma_compiled_code_t *compiled_code_p, /**< compiled code */
+                             uint8_t *snapshot_buffer_p, /**< snapshot buffer */
+                             size_t snapshot_buffer_size, /**< snapshot buffer size */
+@@ -325,7 +314,7 @@ static_snapshot_error_unsupported_literal (snapshot_globals_t *globals_p, /**< s
+  *
+  * @return start offset
+  */
+-static uint32_t
++uint32_t
+ static_snapshot_add_compiled_code (ecma_compiled_code_t *compiled_code_p, /**< compiled code */
+                                    uint8_t *snapshot_buffer_p, /**< snapshot buffer */
+                                    size_t snapshot_buffer_size, /**< snapshot buffer size */
+@@ -457,7 +446,7 @@ static_snapshot_add_compiled_code (ecma_compiled_code_t *compiled_code_p, /**< c
+ /**
+  * Set the uint16_t offsets in the code area.
+  */
+-static void
++void
+ jerry_snapshot_set_offsets (uint32_t *buffer_p, /**< buffer */
+                             uint32_t size, /**< buffer size */
+                             lit_mem_to_snapshot_id_map_entry_t *lit_map_p) /**< literal map */
+diff --git a/jerry-core/api/jerry-snapshot.h b/jerry-core/api/jerry-snapshot.h
+index e8997eec..a07d8dc5 100644
+--- a/jerry-core/api/jerry-snapshot.h
++++ b/jerry-core/api/jerry-snapshot.h
+@@ -51,4 +51,26 @@ typedef enum
+   JERRY_SNAPSHOT_FOUR_BYTE_CPOINTER = (1u << 8) /**< deprecated, an unused placeholder now */
+ } jerry_snapshot_global_flags_t;
+ 
++/* JERRY-OPTIMIZER */
++#if ENABLED(JERRY_SNAPSHOT_SAVE) || ENABLED(JERRY_SNAPSHOT_EXEC)
++/**
++ * Variables required to take a snapshot.
++ */
++typedef struct {
++  size_t snapshot_buffer_write_offset;
++  ecma_value_t snapshot_error;
++  bool regex_found;
++  bool class_found;
++} snapshot_globals_t;
++
++#include "ecma-literal-storage.h"
++
++uint32_t static_snapshot_add_compiled_code(ecma_compiled_code_t *, uint8_t *, size_t, snapshot_globals_t *);
++uint32_t snapshot_add_compiled_code(ecma_compiled_code_t *, uint8_t *, size_t, snapshot_globals_t *);
++uint32_t snapshot_get_global_flags(bool, bool);
++void jerry_snapshot_set_offsets(uint32_t *, uint32_t, lit_mem_to_snapshot_id_map_entry_t *);
++bool snapshot_write_to_buffer_by_offset(uint8_t *, size_t, size_t *, const void *, size_t);
++#endif /* ENABLED (JERRY_SNAPSHOT_SAVE) || ENABLED (JERRY_SNAPSHOT_EXEC) */
++/* JERRY-OPTIMIZER */
++
+ #endif /* !JERRY_SNAPSHOT_H */

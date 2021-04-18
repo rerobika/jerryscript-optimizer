@@ -20,7 +20,8 @@ RegallocLinearScan::~RegallocLinearScan() {}
 bool RegallocLinearScan::run(Optimizer *optimizer, Bytecode *byte_code) {
   assert(optimizer->isSucceeded(PassKind::LIVENESS_ANALYZER));
 
-  regs_count_ = byte_code->args().registerCount();
+  /* arguments are also stored in register therefore they ar included as well */
+  regs_count_ = byte_code->args().registerEnd();
 
   if (regs_count_ == 0) {
     return true;
@@ -130,21 +131,19 @@ void RegallocLinearScan::updateInstructions(Bytecode *byte_code) {
   assert(regs_count_ > new_regs_count_);
   int32_t offset = new_regs_count_ - regs_count_;
 
-  OffsetMap ins_offsets = byte_code->offsetToInst();
-
-  /* 1 register must be present */
-  int32_t lit_offset =
-      static_cast<int32_t>(regs_count_) == offset ? offset + 1 : offset;
-
-  byte_code->args().moveRegIndex(lit_offset);
-  byte_code->literalPool().movePoolStart(lit_offset);
-
   for (auto &iter : intervals_) {
     for (auto ins : byte_code->instructions()) {
+      Argument &arg = ins->argument();
       if (ins->hasFlag(InstFlags::READ_REG)) {
         for (auto &reg : ins->readRegs()) {
           if (iter.first.first == reg) {
             reg = iter.first.second;
+          }
+        }
+
+        for (auto &lit : arg.literals()) {
+          if (lit.index() == iter.first.first) {
+            lit.setIndex(iter.first.second);
           }
         }
       }
@@ -162,27 +161,15 @@ void RegallocLinearScan::updateInstructions(Bytecode *byte_code) {
   for (auto ins : byte_code->instructions()) {
     Argument &arg = ins->argument();
     for (auto &lit : arg.literals()) {
-      lit.moveIndex(offset);
-    }
-
-    for (auto &iter : intervals_) {
-      if (ins->hasFlag(InstFlags::READ_REG)) {
-        for (auto &reg : ins->readRegs()) {
-          if (iter.first.first == reg) {
-            reg = iter.first.second;
-          }
-        }
-      }
-
-      if (ins->hasFlag(InstFlags::WRITE_REG)) {
-        uint32_t &write_reg = ins->writeReg();
-
-        if (iter.first.first == write_reg) {
-          write_reg = iter.first.second;
-        }
+      if (lit.index() >= byte_code->args().registerEnd()) {
+        lit.moveIndex(offset);
       }
     }
   }
+
+  byte_code->args().moveRegIndex(offset);
+  byte_code->literalPool().movePoolStart(offset -
+                                         byte_code->args().argumentEnd());
 
   for (auto bb : byte_code->basicBlockList()) {
     LOG(*bb);

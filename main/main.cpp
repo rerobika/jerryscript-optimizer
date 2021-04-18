@@ -42,14 +42,14 @@ int main(int argc, char const *argv[]) {
   auto input_str = buff.str();
 
   optimizer::SnapshotReadWriter snapshot(input_str);
-  auto res = snapshot.read();
+  auto read_res = snapshot.read();
 
-  if (res.failed()) {
-    std::cerr << "Snapshot parsing error: " << res.error() << std::endl;
+  if (read_res.failed()) {
+    std::cerr << "Snapshot parsing error: " << read_res.error() << std::endl;
     return 2;
   }
 
-  optimizer::Optimizer optimizer(res.list());
+  optimizer::Optimizer optimizer(read_res.list());
   optimizer.addPass(new optimizer::IRBuilder());
   optimizer.addPass(new optimizer::Dominator());
   optimizer.addPass(new optimizer::LivenessAnalyzer());
@@ -57,7 +57,12 @@ int main(int argc, char const *argv[]) {
   optimizer.run();
 
   std::string out = "optimized.snapshot";
-  snapshot.write(out, res.list());
+  auto write_res = snapshot.write(out, read_res.list());
+
+  if (write_res.failed()) {
+    std::cerr << "Snapshot writing error: " << write_res.error() << std::endl;
+    return 2;
+  }
 
   return 0;
 }

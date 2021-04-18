@@ -148,7 +148,7 @@ void Bytecode::decodeHeader() {
 
   setEncoding();
   setBytecodeEnd();
-  stack_ = Stack(args().stackLimit(), args().registerCount());
+  stack_ = Stack(args().stackLimit(), args().registerEnd());
 }
 
 void Bytecode::buildInstructions() {
@@ -198,7 +198,8 @@ Bytecode::~Bytecode() {
 };
 
 void Bytecode::emitHeader(std::vector<uint8_t> &buffer) {
-  size_t total_size = args_.size() + literal_pool_.poolSize();
+  size_t lit_pool_size = literal_pool_.size() * sizeof(ecma_value_t);
+  size_t total_size = args_.size() + lit_pool_size;
 
   buffer.resize(total_size);
   uint8_t *rbuffer = buffer.data();
@@ -217,7 +218,7 @@ void Bytecode::emitHeader(std::vector<uint8_t> &buffer) {
   rbuffer += args_.size();
 
   /* write literal pool */
-  memcpy(rbuffer, literal_pool_.literalStart(), literal_pool_.poolSize());
+  memcpy(rbuffer, literal_pool_.literalStart(), lit_pool_size);
 }
 
 void Bytecode::emitInstructions(std::vector<uint8_t> &buffer) {
@@ -265,6 +266,21 @@ void Bytecode::emit() {
     ECMA_SET_INTERNAL_VALUE_POINTER(
         parent_->literalPool().literalStart()[parent_literal_pool_index_],
         compiled_code_);
+  } else {
+    auto func = ecma_get_object_from_value(function_);
+    assert(ecma_get_object_type(func) == ECMA_OBJECT_TYPE_FUNCTION);
+    auto ext_func = reinterpret_cast<ecma_extended_object_t *>(func);
+
+#if ENABLED(JERRY_SNAPSHOT_EXEC)
+    if (bytecode_data_p->status_flags & CBC_CODE_FLAGS_STATIC_FUNCTION) {
+      ext_func->u.function.bytecode_cp = JMEM_CP_NULL;
+      ((ecma_static_function_t *)func_p)->bytecode_p = compiled_code_;
+    } else
+#endif /* ENABLED (JERRY_SNAPSHOT_EXEC) */
+    {
+      ECMA_SET_INTERNAL_VALUE_POINTER(ext_func->u.function.bytecode_cp,
+                                      compiled_code_);
+    }
   }
 }
 

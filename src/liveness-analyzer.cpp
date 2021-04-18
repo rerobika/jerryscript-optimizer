@@ -19,7 +19,7 @@ LivenessAnalyzer::~LivenessAnalyzer() {}
 bool LivenessAnalyzer::run(Optimizer *optimizer, Bytecode *byte_code) {
   assert(optimizer->isSucceeded(PassKind::DOMINATOR));
 
-  regs_count_ = byte_code->args().registerCount();
+  regs_count_ = byte_code->args().registerEnd();
 
   LOG("TOTAL REG count :" << regs_count_);
 
@@ -135,22 +135,13 @@ void LivenessAnalyzer::computeLiveOuts(BasicBlockList &bbs) {
 
 void LivenessAnalyzer::buildLiveRanges(Bytecode *byte_code,
                                        BasicBlockList &bbs) {
+
+  for (uint32_t i = 0; i < byte_code->args().argumentEnd(); i++) {
+    byte_code->liveRanges().insert({i, {new LiveInterval(0)}});
+  }
+
   for (auto bb : bbs) {
     for (auto ins : bb->insns()) {
-      if (ins->hasFlag(InstFlags::READ_REG)) {
-        for (auto reg : ins->readRegs()) {
-          auto res = byte_code->liveRanges().find(reg);
-          if (res == byte_code->liveRanges().end()) {
-            byte_code->liveRanges().insert(
-                {reg,
-                 {new LiveInterval(bb->insns()[0]->offset(), ins->offset())}});
-            continue;
-          }
-
-          res->second.back()->setEnd(ins->offset());
-        }
-      }
-
       if (ins->hasFlag(InstFlags::WRITE_REG)) {
         uint32_t write_reg = ins->writeReg();
 
@@ -163,6 +154,21 @@ void LivenessAnalyzer::buildLiveRanges(Bytecode *byte_code,
 
         res->second.back()->setEnd(ins->offset());
         res->second.push_back(new LiveInterval(ins->offset()));
+        continue;
+      }
+
+      if (ins->hasFlag(InstFlags::READ_REG)) {
+        for (auto reg : ins->readRegs()) {
+          auto res = byte_code->liveRanges().find(reg);
+          if (res == byte_code->liveRanges().end()) {
+            byte_code->liveRanges().insert(
+                {reg,
+                 {new LiveInterval(bb->insns()[0]->offset(), ins->offset())}});
+            continue;
+          }
+
+          res->second.back()->setEnd(ins->offset());
+        }
       }
     }
   }

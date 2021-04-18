@@ -150,7 +150,6 @@ public:
     one_byte_limit_ = one_byte_limit;
   }
 
-  auto registerCount() { return register_end_ - argument_end_; }
   auto literalCount() { return literal_end_ - register_end_; }
 
   auto argumentEnd() const { return argument_end_; }
@@ -186,27 +185,31 @@ public:
   LiteralPool() {}
 
   auto literalStart() const { return literal_start_; }
+  auto end() const { return end_; }
   auto size() const { return size_; }
-  auto poolSize() const { return size_ * sizeof(ecma_value_t); }
 
   ValueRef getLiteral(LiteralIndex index) {
-    assert(index < size());
-    return Value::_value(literalStart()[index]);
+    assert(index < end_);
+    return Value::_value(literalStart()[end_ - index]);
   }
 
-  void movePoolStart(int32_t offset) { literal_start_ += offset; }
+  void movePoolStart(int32_t offset) {
+    end_ = static_cast<uint16_t>(end_ + offset);
+  }
 
   uint8_t *setLiteralPool(void *literalStart, BytecodeArguments &args) {
-    literal_start_ =
-        reinterpret_cast<ecma_value_t *>(literalStart) - args.registerEnd();
-    size_ = args.literalEnd();
+    literal_start_ = reinterpret_cast<ecma_value_t *>(literalStart);
+    end_ = args.literalEnd();
+    size_ = end_ - args.registerEnd();
 
+    /* Bytecode start */
     return reinterpret_cast<uint8_t *>(literal_start_ + size_);
   }
 
 private:
   ecma_value_t *literal_start_;
   uint16_t size_;
+  uint16_t end_;
 };
 
 class Bytecode;
@@ -220,7 +223,7 @@ public:
   ~Bytecode();
 
   auto compiledCode() const { return compiled_code_; }
-  auto args() const { return args_; }
+  auto &args() { return args_; }
 
   auto function() const { return function_; }
   auto &byteCodeStart() const { return byte_code_start_; }
@@ -246,7 +249,7 @@ public:
   void setBytecodeEnd();
 
   uint32_t toRegisterIndex(LiteralIndex index) {
-    return index - args().argumentEnd();
+    return index; // - args().argumentEnd();
   };
 
   static size_t countFunctions(std::string snapshot);
@@ -274,7 +277,7 @@ private:
 
   ecma_value_t function_;
   ecma_compiled_code_t *compiled_code_;
-  Bytecode* parent_;
+  Bytecode *parent_;
   uint32_t parent_literal_pool_index_;
 
   uint8_t *byte_code_;

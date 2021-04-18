@@ -86,6 +86,8 @@ public:
   void setIndex(LiteralIndex index) { index_ = index; }
 
   void moveIndex(int32_t offset) {
+    LOG("MOVE lit index: " << index_ << " to : " << index_ + offset);
+
     index_ = static_cast<LiteralIndex>(index_ + offset);
   }
 
@@ -393,11 +395,13 @@ public:
   void setWriteReg(uint32_t index) {
     addFlag(InstFlags::WRITE_REG);
     write_reg_ = index;
+    decodeLiteral(index);
   }
 
   void addReadReg(uint32_t index) {
     addFlag(InstFlags::READ_REG);
     read_regs_.push_back(index);
+    decodeLiteral(index);
   }
 
   friend std::ostream &operator<<(std::ostream &os, const Ins &inst) {
