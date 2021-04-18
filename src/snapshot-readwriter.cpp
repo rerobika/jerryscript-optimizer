@@ -63,11 +63,34 @@ SnapshotReadResult SnapshotReadWriter::read() {
   return {function_table};
 }
 
-SnapshotWriteResult SnapshotReadWriter::write(std::string path,
+SnapshotWriteResult SnapshotReadWriter::write(std::string &path,
                                               BytecodeList &list) {
+  // size_t lit_buf_sz = 0;
+  // if (number_of_files == 1) {
+  //   lit_buf_sz = jerry_get_literals_from_snapshot(
+  //       snapshot_buffers[0], snapshot_buffer_sizes[0], literal_buffer,
+  //       JERRY_BUFFER_SIZE, is_c_format);
+  // } else {
+  //   /* The input contains more than one input snapshot file, so we must merge
+  //    * them first. */
+  //   const char *error_p = NULL;
+  //   size_t merged_snapshot_size = jerry_merge_snapshots(
+  //       snapshot_buffers, snapshot_buffer_sizes, number_of_files,
+  //       output_buffer, JERRY_BUFFER_SIZE, &error_p);
+
+  //   if (merged_snapshot_size == 0) {
+  //     jerry_port_log(JERRY_LOG_LEVEL_ERROR, "Error: %s\n", error_p);
+  //     jerry_cleanup();
+  //     return JERRY_STANDALONE_EXIT_CODE_FAIL;
+  //   }
+
+  std::vector<std::pair<uint8_t *, size_t>> snapshots;
+
   for (auto &bytecode : list) {
+    bytecode->emit();
     if (!jerry_value_is_undefined(bytecode->function())) {
-      // TODO
+
+      
     }
   }
 

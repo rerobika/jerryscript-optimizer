@@ -87,6 +87,9 @@ public:
     const_literal_end_ = args->const_literal_end;
     literal_end_ = args->literal_end;
     stack_limit_ = args->stack_limit;
+#if ENABLED(JERRY_BUILTIN_REALMS)
+    realm_value_ = realm_value_;
+#endif
     size_ = static_cast<uint16_t>(sizeof(cbc_uint16_arguments_t));
   }
 
@@ -97,12 +100,54 @@ public:
     const_literal_end_ = static_cast<uint16_t>(args->const_literal_end);
     literal_end_ = static_cast<uint16_t>(args->literal_end);
     stack_limit_ = static_cast<uint16_t>(args->stack_limit);
+#if ENABLED(JERRY_BUILTIN_REALMS)
+    realm_value_ = realm_value_;
+#endif
     size_ = static_cast<uint16_t>(sizeof(cbc_uint8_arguments_t));
   }
 
-  void setEncoding(uint16_t limit, uint16_t delta) {
+  cbc_uint8_arguments_t toU8args() {
+    cbc_uint8_arguments_t args;
+    args.argument_end = static_cast<uint8_t>(argument_end_);
+    args.register_end = static_cast<uint8_t>(register_end_);
+    args.ident_end = static_cast<uint8_t>(ident_end_);
+    args.const_literal_end = static_cast<uint8_t>(const_literal_end_);
+    args.literal_end = static_cast<uint8_t>(literal_end_);
+    args.stack_limit = static_cast<uint8_t>(stack_limit_);
+#if ENABLED(JERRY_BUILTIN_REALMS)
+    args.realm_value = realm_value_;
+#endif
+
+    return args;
+  }
+
+  cbc_uint16_arguments_t toU16args() {
+    cbc_uint16_arguments_t args;
+    args.argument_end = argument_end_;
+    args.register_end = register_end_;
+    args.ident_end = ident_end_;
+    args.const_literal_end = const_literal_end_;
+    args.literal_end = literal_end_;
+    args.stack_limit = stack_limit_;
+    args.padding = 0;
+#if ENABLED(JERRY_BUILTIN_REALMS)
+    args.realm_value = realm_value_;
+#endif
+
+    return args;
+  }
+
+  void moveRegIndex(int32_t offset) {
+    register_end_ = static_cast<uint16_t>(register_end_ + offset);
+    ident_end_ = static_cast<uint16_t>(ident_end_ + offset);
+    const_literal_end_ = static_cast<uint16_t>(const_literal_end_ + offset);
+    literal_end_ = static_cast<uint16_t>(literal_end_ + offset);
+  }
+
+  void setEncoding(uint16_t limit, uint16_t delta, uint16_t one_byte_limit) {
     encoding_limit_ = limit;
     encoding_delta_ = delta;
+    one_byte_limit_ = one_byte_limit;
   }
 
   auto registerCount() { return register_end_ - argument_end_; }
@@ -116,6 +161,8 @@ public:
   auto stackLimit() const { return stack_limit_; }
   auto encodingLimit() const { return encoding_limit_; }
   auto encodingDelta() const { return encoding_delta_; }
+  auto oneByteLimit() const { return one_byte_limit_; }
+  auto realmValue() const { return realm_value_; }
   auto size() const { return size_; }
 
 private:
@@ -126,7 +173,11 @@ private:
   uint16_t literal_end_;
   uint16_t encoding_limit_;
   uint16_t encoding_delta_;
+  uint16_t one_byte_limit_;
   uint16_t stack_limit_;
+#if ENABLED(JERRY_BUILTIN_REALMS)
+  ecma_value_t realm_value_;
+#endif
   uint16_t size_;
 };
 
@@ -136,11 +187,14 @@ public:
 
   auto literalStart() const { return literal_start_; }
   auto size() const { return size_; }
+  auto poolSize() const { return size_ * sizeof(ecma_value_t); }
 
   ValueRef getLiteral(LiteralIndex index) {
     assert(index < size());
     return Value::_value(literalStart()[index]);
   }
+
+  void movePoolStart(int32_t offset) { literal_start_ += offset; }
 
   uint8_t *setLiteralPool(void *literalStart, BytecodeArguments &args) {
     literal_start_ =
@@ -161,7 +215,8 @@ using BytecodeList = std::vector<Bytecode *>;
 class Bytecode {
 public:
   Bytecode(ecma_value_t function);
-  Bytecode(ecma_compiled_code_t *compiled_code);
+  Bytecode(ecma_compiled_code_t *compiled_code, Bytecode *parent,
+           uint32_t parent_literal_pool_index);
   ~Bytecode();
 
   auto compiledCode() const { return compiled_code_; }
@@ -196,7 +251,8 @@ public:
 
   static size_t countFunctions(std::string snapshot);
   static BytecodeList readFunctions(ecma_value_t function);
-  static void readSubFunctions(BytecodeList &functions, Bytecode *byte_code);
+  static void readSubFunctions(BytecodeList &functions,
+                               Bytecode *parent_byte_code);
 
   uint32_t offset() { return byte_code_ - byte_code_start_; }
 
@@ -207,17 +263,24 @@ public:
   uint8_t current() { return *byte_code_; };
   bool hasNext() { return byte_code_ < byte_code_end_; };
 
-  void update();
+  void emit();
 
 private:
   void decodeHeader();
   void buildInstructions();
 
+  void emitHeader(std::vector<uint8_t> &buffer);
+  void emitInstructions(std::vector<uint8_t> &buffer);
+
   ecma_value_t function_;
   ecma_compiled_code_t *compiled_code_;
+  Bytecode* parent_;
+  uint32_t parent_literal_pool_index_;
+
   uint8_t *byte_code_;
   uint8_t *byte_code_start_;
   uint8_t *byte_code_end_;
+  size_t end_info_;
   BytecodeFlags flags_;
 
   BytecodeArguments args_;

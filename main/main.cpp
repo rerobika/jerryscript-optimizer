@@ -56,7 +56,8 @@ int main(int argc, char const *argv[]) {
   optimizer.addPass(new optimizer::RegallocLinearScan());
   optimizer.run();
 
-  snapshot.write("optimized.snapshot", res.list());
+  std::string out = "optimized.snapshot";
+  snapshot.write(out, res.list());
 
   return 0;
 }

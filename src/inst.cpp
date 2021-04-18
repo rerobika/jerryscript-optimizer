@@ -10,6 +10,44 @@
 
 namespace optimizer {
 
+void Argument::emit(Bytecode *byte_code, std::vector<uint8_t> &buffer) {
+
+  if (type_ == OperandType::BRANCH) {
+    uint32_t offset = static_cast<uint32_t>(branch_offset_);
+
+    while (offset != 0) {
+      buffer.push_back(offset & 0xFF);
+      offset >>= 8;
+    }
+    return;
+  }
+
+  for (auto &lit : literals_) {
+    lit.emit(byte_code, buffer);
+  }
+
+  if (hasByteArg()) {
+    buffer.push_back(byte_arg_);
+  }
+}
+
+void Literal::emit(Bytecode *byte_code, std::vector<uint8_t> &buffer) {
+  if (index_ <= byte_code->args().oneByteLimit()) {
+    buffer.push_back(static_cast<uint8_t>(index_));
+    return;
+  }
+
+  if (index_ <= CBC_MAXIMUM_SMALL_VALUE) {
+    buffer.push_back(CBC_MAXIMUM_BYTE_VALUE);
+    buffer.push_back(static_cast<uint8_t>(index_ - CBC_MAXIMUM_BYTE_VALUE));
+    return;
+  }
+
+  assert(index_ <= CBC_MAXIMUM_FULL_VALUE);
+  buffer.push_back(static_cast<uint8_t>((index_ >> 8) | CBC_HIGHEST_BIT_MASK));
+  buffer.push_back(static_cast<uint8_t>(index_ & 0xFF));
+}
+
 ValueRef Literal::toValueRef(Bytecode *byte_code) {
   switch (type()) {
   case LiteralType::ARGUMENT: {
@@ -303,11 +341,15 @@ void Ins::decodeGroupOpcode() {
     break;
   }
   case VM_OC_PUSH_POS_BYTE: {
-    stack().push(Value::_number(byteCode()->next() + 1));
+    uint8_t byte = byteCode()->next();
+    argument_.setByteArg(byte);
+    stack().push(Value::_number(byte + 1));
     break;
   }
   case VM_OC_PUSH_NEG_BYTE: {
-    stack().push(Value::_number(-(byteCode()->next() + 1)));
+    uint8_t byte = byteCode()->next();
+    argument_.setByteArg(byte);
+    stack().push(Value::_number(-(byte + 1)));
     break;
   }
   case VM_OC_PUSH_LIT_0: {
@@ -316,13 +358,17 @@ void Ins::decodeGroupOpcode() {
     break;
   }
   case VM_OC_PUSH_LIT_POS_BYTE: {
+    uint8_t byte = byteCode()->next();
+    argument_.setByteArg(byte);
     stack().push(stack().left());
-    stack().push(Value::_number(byteCode()->next() + 1));
+    stack().push(Value::_number(byte + 1));
     break;
   }
   case VM_OC_PUSH_LIT_NEG_BYTE: {
+    uint8_t byte = byteCode()->next();
+    argument_.setByteArg(byte);
     stack().push(stack().left());
-    stack().push(Value::_number(-(byteCode()->next() + 1)));
+    stack().push(Value::_number(-(byte + 1)));
     break;
   }
   case VM_OC_PUSH_OBJECT: {
@@ -482,11 +528,14 @@ void Ins::decodeGroupOpcode() {
   }
 #if ENABLED(JERRY_ESNEXT)
   case VM_OC_LOCAL_EVAL: {
-    setPayload(byteCode()->next());
+    uint8_t byte = byteCode()->next();
+    argument_.setByteArg(byte);
+    setPayload(byte);
     break;
   }
   case VM_OC_SUPER_CALL: {
     auto argc = byteCode()->next();
+    argument_.setByteArg(argc);
     stack().pop(argc);
     stack().pop(1); // function object
     if (opcode().opcodeData().isPutStack()) {
@@ -641,6 +690,7 @@ void Ins::decodeGroupOpcode() {
   }
   case VM_OC_SPREAD_ARGUMENTS: {
     auto argc = byteCode()->next();
+    argument_.setByteArg(argc);
     stack().pop(argc);
     stack().pop(opcode().CBCopcode() >= CBC_EXT_SPREAD_CALL_PROP ? 3 : 1);
     stack().push(Value::_internal());
@@ -719,6 +769,7 @@ void Ins::decodeGroupOpcode() {
   }
   case VM_OC_APPEND_ARRAY: {
     auto values_length = byteCode()->next();
+    argument_.setByteArg(values_length);
     stack().pop(values_length);
     break;
   }
@@ -857,6 +908,7 @@ void Ins::decodeGroupOpcode() {
       argc = (uint32_t)((opcode().CBCopcode() - CBC_CALL0) / 6);
     } else {
       argc = byteCode()->next();
+      argument_.setByteArg(argc);
     }
 
     if (((opcode().CBCopcode() - CBC_CALL) % 6) >= 3) {
@@ -878,6 +930,7 @@ void Ins::decodeGroupOpcode() {
       argc = (uint32_t)((opcode().CBCopcode() - CBC_NEW0));
     } else {
       argc = byteCode()->next();
+      argument_.setByteArg(argc);
     }
 
     stack().pop(argc);
@@ -1121,6 +1174,7 @@ void Ins::decodeGroupOpcode() {
       value = (value << 7) | (byte & CBC_LOWER_SEVEN_BIT_MASK);
     } while (byte & CBC_HIGHEST_BIT_MASK);
 
+    argument_.setLineInfo(value);
     break;
   }
 #endif /* ENABLED (JERRY_LINE_INFO) */
@@ -1129,6 +1183,31 @@ void Ins::decodeGroupOpcode() {
     break;
   }
   }
-} // namespace optimizer
+}
+
+void Ins::emit(std::vector<uint8_t> &buffer) {
+  if (opcode_.isExt(CBC_EXT_LINE)) {
+    buffer.push_back(CBC_EXT_OPCODE);
+    buffer.push_back(CBC_EXT_LINE);
+
+    uint32_t line = argument_.lineInfo();
+
+    std::vector<uint8_t> tmp;
+
+    do {
+      tmp.push_back(line & CBC_LOWER_SEVEN_BIT_MASK);
+      line >>= 7;
+    } while (line & CBC_HIGHEST_BIT_MASK);
+
+    for (auto byte : tmp) {
+      buffer.push_back(byte);
+    }
+
+    return;
+  }
+
+  opcode_.emit(buffer);
+  argument_.emit(byte_code_, buffer);
+}
 
 } // namespace optimizer

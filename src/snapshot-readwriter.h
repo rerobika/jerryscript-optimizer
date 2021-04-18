@@ -46,7 +46,7 @@ public:
   ~SnapshotReadWriter();
 
   SnapshotReadResult read();
-  SnapshotWriteResult write(std::string path, BytecodeList &list);
+  SnapshotWriteResult write(std::string& path, BytecodeList &list);
 
   auto snapshot() const { return snapshot_; }
   auto bytecode() const { return bytecode_; }

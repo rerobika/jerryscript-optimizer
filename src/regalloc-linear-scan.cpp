@@ -127,9 +127,17 @@ void RegallocLinearScan::updateInstructions(Bytecode *byte_code) {
     return;
   }
 
+  assert(regs_count_ > new_regs_count_);
   int32_t offset = new_regs_count_ - regs_count_;
 
   OffsetMap ins_offsets = byte_code->offsetToInst();
+
+  /* 1 register must be present */
+  int32_t lit_offset =
+      static_cast<int32_t>(regs_count_) == offset ? offset + 1 : offset;
+
+  byte_code->args().moveRegIndex(lit_offset);
+  byte_code->literalPool().movePoolStart(lit_offset);
 
   for (auto &iter : intervals_) {
     for (auto ins : byte_code->instructions()) {

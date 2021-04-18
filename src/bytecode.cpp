@@ -18,7 +18,8 @@ extern "C" {
 
 namespace optimizer {
 
-Bytecode::Bytecode(ecma_value_t function) {
+Bytecode::Bytecode(ecma_value_t function)
+    : parent_(nullptr), parent_literal_pool_index_(0) {
   assert(ecma_is_value_object(function));
 
   auto func = ecma_get_object_from_value(function);
@@ -32,25 +33,30 @@ Bytecode::Bytecode(ecma_value_t function) {
   buildInstructions();
 }
 
-Bytecode::Bytecode(ecma_compiled_code_t *compiled_code)
-    : function_(ECMA_VALUE_UNDEFINED), compiled_code_(compiled_code) {
+Bytecode::Bytecode(ecma_compiled_code_t *compiled_code, Bytecode *parent,
+                   uint32_t parent_literal_pool_index)
+    : function_(ECMA_VALUE_UNDEFINED), compiled_code_(compiled_code),
+      parent_(parent), parent_literal_pool_index_(parent_literal_pool_index) {
   buildInstructions();
 }
 
-void Bytecode::readSubFunctions(BytecodeList &list, Bytecode *byte_code) {
-  if (!byte_code->flags().isFunction()) {
+void Bytecode::readSubFunctions(BytecodeList &list,
+                                Bytecode *parent_byte_code) {
+  if (!parent_byte_code->flags().isFunction()) {
     return;
   }
 
-  for (uint32_t i = byte_code->args().constLiteralEnd();
-       i < byte_code->args().literalEnd(); i++) {
+  for (uint32_t i = parent_byte_code->args().constLiteralEnd();
+       i < parent_byte_code->args().literalEnd(); i++) {
     ecma_compiled_code_t *bytecode_literal_p = ECMA_GET_INTERNAL_VALUE_POINTER(
-        ecma_compiled_code_t, byte_code->literalPool().literalStart()[i]);
+        ecma_compiled_code_t,
+        parent_byte_code->literalPool().literalStart()[i]);
 
-    if (bytecode_literal_p != byte_code->compiledCode()) {
-      Bytecode *sub_byte_code = new Bytecode(bytecode_literal_p);
-      list.push_back(sub_byte_code);
+    if (bytecode_literal_p != parent_byte_code->compiledCode()) {
+      Bytecode *sub_byte_code =
+          new Bytecode(bytecode_literal_p, parent_byte_code, i);
       readSubFunctions(list, sub_byte_code);
+      list.push_back(sub_byte_code);
     }
   }
 }
@@ -73,8 +79,8 @@ BytecodeList Bytecode::readFunctions(ecma_value_t function) {
   BytecodeList list;
 
   Bytecode *byte_code = new Bytecode(function);
-  list.push_back(byte_code);
   readSubFunctions(list, byte_code);
+  list.push_back(byte_code);
 
   return list;
 }
@@ -94,34 +100,39 @@ void Bytecode::setArguments(cbc_uint8_arguments_t *args) {
 void Bytecode::setEncoding() {
   uint16_t limit = CBC_SMALL_LITERAL_ENCODING_LIMIT;
   uint16_t delta = CBC_SMALL_LITERAL_ENCODING_DELTA;
+  uint16_t one_byte_limit = CBC_MAXIMUM_BYTE_VALUE - 1;
 
   if (flags_.fullLiteralEncoding()) {
     limit = CBC_FULL_LITERAL_ENCODING_LIMIT,
     delta = CBC_FULL_LITERAL_ENCODING_DELTA;
+    one_byte_limit = CBC_LOWER_SEVEN_BIT_MASK;
   }
-  args_.setEncoding(limit, delta);
+  args_.setEncoding(limit, delta, one_byte_limit);
 }
 
 void Bytecode::setBytecodeEnd() {
   size_t size = compiledCodesize();
+  size_t end_info = 0;
 
   if (flags().mappedArgumentsNeeded()) {
-    size -= args().argumentEnd() * sizeof(ecma_value_t);
+    end_info += args().argumentEnd() * sizeof(ecma_value_t);
   }
 
   if (flags().hasExtendedInfo()) {
-    size -= sizeof(ecma_value_t);
+    end_info += sizeof(ecma_value_t);
   }
 
   if (flags().hasName()) {
-    size -= sizeof(ecma_value_t);
+    end_info += sizeof(ecma_value_t);
   }
 
   if (flags().hasTaggedTemplateLiterals()) {
-    size -= sizeof(ecma_value_t);
+    end_info += sizeof(ecma_value_t);
   }
 
-  byte_code_end_ = reinterpret_cast<uint8_t *>(compiledCode()) + size;
+  byte_code_end_ =
+      reinterpret_cast<uint8_t *>(compiledCode()) + size - end_info;
+  end_info_ = end_info;
 }
 
 void Bytecode::decodeHeader() {
@@ -186,6 +197,75 @@ Bytecode::~Bytecode() {
   ecma_free_value(function_);
 };
 
-void Bytecode::update() {}
+void Bytecode::emitHeader(std::vector<uint8_t> &buffer) {
+  size_t total_size = args_.size() + literal_pool_.poolSize();
+
+  buffer.resize(total_size);
+  uint8_t *rbuffer = buffer.data();
+
+  /* write cbc arguments */
+  if (flags_.uint16Arguments()) {
+    cbc_uint16_arguments_t args = args_.toU16args();
+    args.header = *compiled_code_;
+    memcpy(rbuffer, &args, sizeof(cbc_uint16_arguments_t));
+  } else {
+    cbc_uint8_arguments_t args = args_.toU8args();
+    args.header = *compiled_code_;
+    memcpy(rbuffer, &args, sizeof(cbc_uint8_arguments_t));
+  }
+
+  rbuffer += args_.size();
+
+  /* write literal pool */
+  memcpy(rbuffer, literal_pool_.literalStart(), literal_pool_.poolSize());
+}
+
+void Bytecode::emitInstructions(std::vector<uint8_t> &buffer) {
+  for (auto &ins : instructions_) {
+    /* write opcode */
+    ins->emit(buffer);
+  }
+}
+
+/**
+ * Reconstruct the bytecode from the IR
+ */
+void Bytecode::emit() {
+  std::vector<uint8_t> buffer;
+
+  emitHeader(buffer);
+  emitInstructions(buffer);
+
+  size_t total_size = JERRY_ALIGNUP(buffer.size(), JMEM_ALIGNMENT);
+
+  while (buffer.size() != total_size) {
+    buffer.push_back(0);
+  }
+
+  if (end_info_ != 0) {
+    buffer.resize(buffer.size() + end_info_);
+    memcpy(buffer.data() + buffer.size(),
+           reinterpret_cast<uint8_t *>(compiled_code_) + compiledCodesize() -
+               end_info_,
+           end_info_);
+
+    total_size = JERRY_ALIGNUP(buffer.size(), JMEM_ALIGNMENT);
+  }
+
+  jmem_heap_free_block(compiled_code_,
+                       compiled_code_->size << JMEM_ALIGNMENT_LOG);
+
+  compiled_code_ = reinterpret_cast<ecma_compiled_code_t *>(
+      jmem_heap_alloc_block(total_size));
+  memcpy(compiled_code_, buffer.data(), total_size);
+  compiled_code_->size = total_size >> JMEM_ALIGNMENT_LOG;
+
+  if (parent_) {
+    assert(parent_->flags().isFunction());
+    ECMA_SET_INTERNAL_VALUE_POINTER(
+        parent_->literalPool().literalStart()[parent_literal_pool_index_],
+        compiled_code_);
+  }
+}
 
 } // namespace optimizer

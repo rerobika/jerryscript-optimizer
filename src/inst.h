@@ -89,6 +89,8 @@ public:
     index_ = static_cast<LiteralIndex>(index_ + offset);
   }
 
+  void emit(Bytecode *byte_code, std::vector<uint8_t> &buffer);
+
 private:
   LiteralType type_;
   LiteralIndex index_;
@@ -97,12 +99,17 @@ private:
 class Argument {
 public:
   Argument() : Argument(OperandType::OPERAND_TYPE__COUNT) {}
-  Argument(OperandType type) : type_(type), branch_offset_(0) {}
+  Argument(OperandType type)
+      : type_(type), branch_offset_(0), byte_arg_(UINT32_MAX) {}
 
   auto branchOffset() const { return branch_offset_; }
   auto type() const { return type_; }
   auto stackDelta() const { return stack_delta_; }
+  auto lineInfo() const { return line_info_; }
+  uint8_t byteArg() const { return static_cast<uint8_t>(byte_arg_); }
   auto &literals() { return literals_; }
+
+  bool hasByteArg() const { return byte_arg_ != UINT32_MAX; }
 
   void setBranchOffset(int32_t offset) {
     assert(type() == OperandType::BRANCH);
@@ -115,6 +122,9 @@ public:
     stack_delta_ = delta;
   }
 
+  void setLineInfo(uint32_t line) { line_info_ = line; }
+  void setByteArg(uint8_t byte) { byte_arg_ = byte; }
+
   void addLiteral(Literal &literal) { literals_.push_back(literal); }
 
   bool isLiteral() const { return type() >= OperandType::LITERAL; }
@@ -122,9 +132,13 @@ public:
     return type() == OperandType::LITERAL_LITERAL;
   }
 
+  void emit(Bytecode *byte_code, std::vector<uint8_t> &buffer);
+
 private:
   OperandType type_;
   int32_t branch_offset_;
+  uint32_t line_info_;
+  uint32_t byte_arg_;
   int32_t stack_delta_;
   std::vector<Literal> literals_;
 };
@@ -198,11 +212,22 @@ public:
   auto CBCopcode() const { return cbc_opcode_; }
   auto opcodeData() const { return opcode_data_; }
 
+  bool isExt(CBCOpcode opcode) { return cbc_opcode_ == opcode + 256; }
+
   bool is(CBCOpcode opcode) {
     if (isExtOpcode()) {
       opcode += 256;
     }
     return cbc_opcode_ == opcode;
+  }
+
+  void emit(std::vector<uint8_t> &buffer) {
+    if (isExtOpcode()) {
+      buffer.push_back(CBC_EXT_OPCODE);
+      buffer.push_back(cbc_opcode_ - 256);
+    } else {
+      buffer.push_back(cbc_opcode_);
+    }
   }
 
   bool isExtOpcode() const { return Opcode::isExtOpcode(CBCopcode()); }
@@ -416,6 +441,8 @@ public:
 
     return os;
   }
+
+  void emit(std::vector<uint8_t> &buffer);
 
 private:
   Bytecode *byte_code_;
