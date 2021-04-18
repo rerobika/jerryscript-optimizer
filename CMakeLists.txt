@@ -32,6 +32,3 @@ include(cmake/jerryscript.cmake)
 
 add_subdirectory(src)
 add_subdirectory(main)
-
-
-

@@ -7,6 +7,8 @@
 
 cmake_minimum_required(VERSION 3.5)
 
+execute_process(COMMAND ${CMAKE_SOURCE_DIR}/scripts/patch.sh)
+
 set(JERRYSCRIPT_PREFIX deps/jerryscript)
 ExternalProject_Add(libjerryscript
   PREFIX ${JERRYSCRIPT_PREFIX}
