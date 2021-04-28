@@ -23,7 +23,10 @@ public:
   virtual bool run();
   auto &list() { return list_; }
 
-  void addPass(Pass *pass) { passes_.push_back(pass); }
+  Optimizer& addPass(Pass *pass) {
+    passes_.push_back(pass);
+    return *this;
+  }
 
   bool isSucceeded(PassKind pass);
   void finish(PassKind pass);

@@ -6,8 +6,8 @@
  * according to those terms.
  */
 
-#ifndef IR_BUILDER_H
-#define IR_BUILDER_H
+#ifndef CFG_BUILDER_H
+#define CFG_BUILDER_H
 
 #include "basic-block.h"
 #include "common.h"
@@ -19,16 +19,16 @@ namespace optimizer {
 
 class Optimizer;
 
-class IRBuilder : public Pass {
+class CFGAnalysis : public Pass {
 public:
-  IRBuilder();
-  ~IRBuilder();
+  CFGAnalysis();
+  ~CFGAnalysis();
 
   virtual bool run(Optimizer *optimizer, Bytecode *byte_code);
 
-  virtual const char *name() { return "IRBuilder"; }
+  virtual const char *name() { return "CFGAnalysis"; }
 
-  virtual PassKind kind() { return PassKind::IR_BUILDER; }
+  virtual PassKind kind() { return PassKind::CFG_BUILDER; }
 
 private:
   void findLeaders();
@@ -45,4 +45,4 @@ private:
 
 } // namespace optimizer
 
-#endif // IR_BUILDER_H
+#endif // CFG_BUILDER_H

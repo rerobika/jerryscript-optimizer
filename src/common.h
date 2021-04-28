@@ -23,6 +23,21 @@
 #include <unordered_set>
 #include <vector>
 
+#ifndef DEBUG_DUMP
+#define DEBUG_DUMP 1
+#endif
+
+#if DEBUG_DUMP
+#define LOG(x)                                                                 \
+  do {                                                                         \
+    std::cout << x << std::endl;                                               \
+  } while (0)
+#else
+#define LOG(x)                                                                 \
+  do {                                                                         \
+  } while (0)
+#endif
+
 #define unreachable() assert(0)
 
 #endif // COMMON_H

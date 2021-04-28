@@ -6,17 +6,17 @@
  * according to those terms.
  */
 
-#include "liveness-analyzer.h"
+#include "liveness-analysis.h"
 #include "basic-block.h"
 #include "optimizer.h"
 
 namespace optimizer {
 
-LivenessAnalyzer::LivenessAnalyzer() : Pass() {}
+LivenessAnalysis::LivenessAnalysis() : Pass() {}
 
-LivenessAnalyzer::~LivenessAnalyzer() {}
+LivenessAnalysis::~LivenessAnalysis() {}
 
-bool LivenessAnalyzer::run(Optimizer *optimizer, Bytecode *byte_code) {
+bool LivenessAnalysis::run(Optimizer *optimizer, Bytecode *byte_code) {
   assert(optimizer->isSucceeded(PassKind::DOMINATOR));
 
   regs_count_ = byte_code->args().registerEnd();
@@ -38,7 +38,7 @@ bool LivenessAnalyzer::run(Optimizer *optimizer, Bytecode *byte_code) {
   return true;
 }
 
-void LivenessAnalyzer::computeDefsUses(BasicBlockList &bbs, InsList &insns) {
+void LivenessAnalysis::computeDefsUses(BasicBlockList &bbs, InsList &insns) {
   for (auto ins : insns) {
 
     if (ins->hasFlag(InstFlags::READ_REG)) {
@@ -60,7 +60,7 @@ void LivenessAnalyzer::computeDefsUses(BasicBlockList &bbs, InsList &insns) {
   }
 }
 
-bool LivenessAnalyzer::setsEqual(RegSet &a, RegSet &b) {
+bool LivenessAnalysis::setsEqual(RegSet &a, RegSet &b) {
   if (a.size() != b.size()) {
     return false;
   }
@@ -74,7 +74,7 @@ bool LivenessAnalyzer::setsEqual(RegSet &a, RegSet &b) {
   return true;
 }
 
-void LivenessAnalyzer::computeLiveOut(BasicBlock *bb) {
+void LivenessAnalysis::computeLiveOut(BasicBlock *bb) {
   RegSet new_liveout;
 
   for (auto succ : bb->successors()) {
@@ -95,7 +95,7 @@ void LivenessAnalyzer::computeLiveOut(BasicBlock *bb) {
   bb->liveOut() = std::move(new_liveout);
 }
 
-void LivenessAnalyzer::computeLiveOuts(BasicBlockList &bbs) {
+void LivenessAnalysis::computeLiveOuts(BasicBlockList &bbs) {
 
   while (true) {
     bool changed = false;
@@ -133,7 +133,7 @@ void LivenessAnalyzer::computeLiveOuts(BasicBlockList &bbs) {
   LOG("------------------------------------------");
 }
 
-void LivenessAnalyzer::buildLiveRanges(Bytecode *byte_code,
+void LivenessAnalysis::buildLiveRanges(Bytecode *byte_code,
                                        BasicBlockList &bbs) {
 
   for (uint32_t i = 0; i < byte_code->args().argumentEnd(); i++) {

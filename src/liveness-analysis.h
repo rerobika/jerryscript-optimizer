@@ -17,14 +17,14 @@ namespace optimizer {
 
 class Optimizer;
 
-class LivenessAnalyzer : public Pass {
+class LivenessAnalysis : public Pass {
 public:
-  LivenessAnalyzer();
-  ~LivenessAnalyzer();
+  LivenessAnalysis();
+  ~LivenessAnalysis();
 
   virtual bool run(Optimizer *optimizer, Bytecode *byte_code);
 
-  virtual const char *name() { return "LivenessAnalyzer"; }
+  virtual const char *name() { return "LivenessAnalysis"; }
 
   virtual PassKind kind() { return PassKind::LIVENESS_ANALYZER; }
 

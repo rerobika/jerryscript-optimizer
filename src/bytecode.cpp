@@ -9,7 +9,7 @@
 #include "bytecode.h"
 #include "basic-block.h"
 #include "inst.h"
-#include "liveness-analyzer.h"
+#include "liveness-analysis.h"
 
 extern "C" {
 #include "jerry-snapshot.h"

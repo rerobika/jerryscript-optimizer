@@ -8,7 +8,7 @@
 
 #include "regalloc-linear-scan.h"
 #include "basic-block.h"
-#include "liveness-analyzer.h"
+#include "liveness-analysis.h"
 #include "optimizer.h"
 
 namespace optimizer {

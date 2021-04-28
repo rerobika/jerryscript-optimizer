@@ -50,10 +50,10 @@ int main(int argc, char const *argv[]) {
   }
 
   optimizer::Optimizer optimizer(read_res.list());
-  optimizer.addPass(new optimizer::IRBuilder());
-  optimizer.addPass(new optimizer::Dominator());
-  optimizer.addPass(new optimizer::LivenessAnalyzer());
-  optimizer.addPass(new optimizer::RegallocLinearScan());
+  optimizer.addPass(new optimizer::CFGAnalysis())
+      .addPass(new optimizer::DominatorAnalysis())
+      .addPass(new optimizer::LivenessAnalysis())
+      .addPass(new optimizer::RegallocLinearScan());
   optimizer.run();
 
   std::string out = "optimized.snapshot";

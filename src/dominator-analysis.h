@@ -17,10 +17,10 @@ namespace optimizer {
 
 class Optimizer;
 
-class Dominator : public Pass {
+class DominatorAnalysis : public Pass {
 public:
-  Dominator();
-  ~Dominator();
+  DominatorAnalysis();
+  ~DominatorAnalysis();
 
   virtual bool run(Optimizer *optimizer, Bytecode *byte_code);
   bool dominatedBy(BasicBlock *who, BasicBlock *by);

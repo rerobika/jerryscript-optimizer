@@ -8,10 +8,10 @@
 set(SRC
     basic-block.cpp
     bytecode.cpp
-    dominator.cpp
+    cfg-analysis.cpp
+    dominator-analysis.cpp
     inst.cpp
-    ir-builder.cpp
-    liveness-analyzer.cpp
+    liveness-analysis.cpp
     optimizer.cpp
     pass.cpp
     regalloc-linear-scan.cpp

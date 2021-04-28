@@ -7,7 +7,6 @@
  */
 
 #include "optimizer.h"
-#include "ir-builder.h"
 
 namespace optimizer {
 

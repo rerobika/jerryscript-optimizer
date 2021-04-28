@@ -129,7 +129,7 @@ private:
   // IR-builder
   InsList insts_;
 
-  // Dominator
+  // DominatorAnalysis
   BasicBlockList predecessors_;
   BasicBlockList successors_;
   BasicBlock *dominated_;

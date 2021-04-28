@@ -18,7 +18,7 @@ class Optimizer;
 
 enum PassKind {
   NONE,
-  IR_BUILDER,
+  CFG_BUILDER,
   DOMINATOR,
   LIVENESS_ANALYZER,
   REGALLOC_LINEAR_SCAN,

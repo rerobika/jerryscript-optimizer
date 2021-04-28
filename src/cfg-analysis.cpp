@@ -6,16 +6,16 @@
  * according to those terms.
  */
 
-#include "ir-builder.h"
+#include "cfg-analysis.h"
 #include "optimizer.h"
 
 namespace optimizer {
 
-IRBuilder::IRBuilder() : Pass() {}
+CFGAnalysis::CFGAnalysis() : Pass() {}
 
-IRBuilder::~IRBuilder() {}
+CFGAnalysis::~CFGAnalysis() {}
 
-bool IRBuilder::run(Optimizer *optimizer, Bytecode *byte_code) {
+bool CFGAnalysis::run(Optimizer *optimizer, Bytecode *byte_code) {
   byte_code_ = byte_code;
   bb_id_ = 0;
   bbs_.clear();
@@ -33,14 +33,14 @@ bool IRBuilder::run(Optimizer *optimizer, Bytecode *byte_code) {
   return true;
 }
 
-BasicBlock *IRBuilder::newBB() {
+BasicBlock *CFGAnalysis::newBB() {
   BasicBlock *bb = BasicBlock::create(bb_id_++);
   bbs_.push_back(bb);
 
   return bb;
 }
 
-void IRBuilder::findLeaders() {
+void CFGAnalysis::findLeaders() {
 
   auto &insns = byte_code_->instructions();
   auto iter = insns.begin();
@@ -82,7 +82,7 @@ void IRBuilder::findLeaders() {
   }
 }
 
-void IRBuilder::buildBlocks() {
+void CFGAnalysis::buildBlocks() {
 
   auto &insns = byte_code_->instructions();
   auto iter = leaders_.begin();
@@ -120,7 +120,7 @@ void IRBuilder::buildBlocks() {
   bbs_.push_back(bb_end);
 }
 
-void IRBuilder::connectBlocks() {
+void CFGAnalysis::connectBlocks() {
   for (auto bb : bbs_) {
     if (!bb->isValid()) {
       continue;

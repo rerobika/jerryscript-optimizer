@@ -41,7 +41,7 @@ SnapshotReadResult SnapshotReadWriter::read() {
   for (size_t i = 0; i < number_of_funcs; i++) {
     jerry_value_t function = jerry_load_function_snapshot(
         reinterpret_cast<const uint32_t *>(snapshot().c_str()),
-        snapshot().size(), 0, JERRY_SNAPSHOT_EXEC_COPY_DATA);
+        snapshot().size(), i, JERRY_SNAPSHOT_EXEC_COPY_DATA);
 
     if (jerry_value_is_error(function)) {
       jerry_value_t error = jerry_get_value_from_error(function, true);

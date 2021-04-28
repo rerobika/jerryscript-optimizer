@@ -9,9 +9,9 @@
 #ifndef PASSES_H
 #define PASSES_H
 
-#include "dominator.h"
-#include "ir-builder.h"
-#include "liveness-analyzer.h"
+#include "cfg-analysis.h"
+#include "dominator-analysis.h"
+#include "liveness-analysis.h"
 #include "regalloc-linear-scan.h"
 
 #endif // PASSES_H

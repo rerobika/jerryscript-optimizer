@@ -6,18 +6,18 @@
  * according to those terms.
  */
 
-#include "dominator.h"
+#include "dominator-analysis.h"
 #include "basic-block.h"
 #include "optimizer.h"
 
 namespace optimizer {
 
-Dominator::Dominator() : Pass() {}
+DominatorAnalysis::DominatorAnalysis() : Pass() {}
 
-Dominator::~Dominator() {}
+DominatorAnalysis::~DominatorAnalysis() {}
 
-bool Dominator::run(Optimizer *optimizer, Bytecode *byte_code) {
-  assert(optimizer->isSucceeded(PassKind::IR_BUILDER));
+bool DominatorAnalysis::run(Optimizer *optimizer, Bytecode *byte_code) {
+  assert(optimizer->isSucceeded(PassKind::CFG_BUILDER));
 
   BasicBlockList &bbs = byte_code->basicBlockList();
 
@@ -32,12 +32,12 @@ bool Dominator::run(Optimizer *optimizer, Bytecode *byte_code) {
   return true;
 }
 
-bool Dominator::dominatedBy(BasicBlock *who, BasicBlock *by) {
+bool DominatorAnalysis::dominatedBy(BasicBlock *who, BasicBlock *by) {
   return std::find(who->dominators().begin(), who->dominators().end(), by) !=
          who->dominators().end();
 }
 
-void Dominator::computeDominated(BasicBlockList &bbs) {
+void DominatorAnalysis::computeDominated(BasicBlockList &bbs) {
   auto iter = bbs.begin();
   assert((*iter)->dominated() == nullptr); // the first node has no idom
 
@@ -80,7 +80,7 @@ void Dominator::computeDominated(BasicBlockList &bbs) {
   }
 }
 
-void Dominator::computeDominators(BasicBlockList &bbs) {
+void DominatorAnalysis::computeDominators(BasicBlockList &bbs) {
   // dominator of the start node is the start itself
   bbs[0]->dominators().push_back(bbs[0]);
 
