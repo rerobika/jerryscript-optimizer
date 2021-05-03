@@ -124,11 +124,10 @@ void RegallocLinearScan::expireOldIntervals(RegLiveIntervalList &active,
 }
 
 void RegallocLinearScan::updateInstructions(Bytecode *byte_code) {
-  if (new_regs_count_ == regs_count_) {
+  if (new_regs_count_ >= regs_count_) {
     return;
   }
 
-  assert(regs_count_ > new_regs_count_);
   int32_t offset = new_regs_count_ - regs_count_;
 
   for (auto &iter : intervals_) {

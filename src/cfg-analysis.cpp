@@ -40,7 +40,7 @@ BasicBlock *CFGAnalysis::newBB() {
   return bb;
 }
 
-void CFGAnalysis::findLeaders() {
+void CFGAnalysis:: findLeaders() {
 
   auto &insns = byte_code_->instructions();
   auto iter = insns.begin();

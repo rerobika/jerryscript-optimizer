@@ -42,17 +42,14 @@ Bytecode::Bytecode(ecma_compiled_code_t *compiled_code, Bytecode *parent,
 
 void Bytecode::readSubFunctions(BytecodeList &list,
                                 Bytecode *parent_byte_code) {
-  if (!parent_byte_code->flags().isFunction()) {
-    return;
-  }
-
   for (uint32_t i = parent_byte_code->args().constLiteralEnd();
        i < parent_byte_code->args().literalEnd(); i++) {
     ecma_compiled_code_t *bytecode_literal_p = ECMA_GET_INTERNAL_VALUE_POINTER(
         ecma_compiled_code_t,
         parent_byte_code->literalPool().literalStart()[i]);
 
-    if (bytecode_literal_p != parent_byte_code->compiledCode()) {
+    if (bytecode_literal_p != parent_byte_code->compiledCode() &&
+        CBC_IS_FUNCTION(bytecode_literal_p->status_flags)) {
       Bytecode *sub_byte_code =
           new Bytecode(bytecode_literal_p, parent_byte_code, i);
       readSubFunctions(list, sub_byte_code);

@@ -35,7 +35,7 @@ public:
 
 private:
   void computeDominators(BasicBlockList &bbs);
-  void computeDominated(BasicBlockList &bbs);
+  void computeImmDominator(BasicBlockList &bbs);
 
 };
 

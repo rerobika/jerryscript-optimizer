@@ -30,7 +30,7 @@ public:
 
 private:
   bool setsEqual(RegSet &a, RegSet &b);
-  void computeDefsUses(BasicBlockList &bbs, InsList &insns);
+  void computeKillUe(BasicBlockList &bbs, InsList &insns);
   void computeLiveOut(BasicBlock *bb);
   void computeLiveOuts(BasicBlockList &bbs);
   void computeLiveRanges(BasicBlockList &bbs);

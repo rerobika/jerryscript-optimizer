@@ -30,15 +30,14 @@ bool LivenessAnalysis::run(Optimizer *optimizer, Bytecode *byte_code) {
   BasicBlockList &bbs = byte_code->basicBlockList();
   InsList &insns = byte_code->instructions();
 
-  computeDefsUses(bbs, insns);
+  computeKillUe(bbs, insns);
   computeLiveOuts(bbs);
-  // findLocals(bbs);
   buildLiveRanges(byte_code, bbs);
 
   return true;
 }
 
-void LivenessAnalysis::computeDefsUses(BasicBlockList &bbs, InsList &insns) {
+void LivenessAnalysis::computeKillUe(BasicBlockList &bbs, InsList &insns) {
   for (auto ins : insns) {
 
     if (ins->hasFlag(InstFlags::READ_REG)) {
@@ -78,7 +77,7 @@ void LivenessAnalysis::computeLiveOut(BasicBlock *bb) {
   RegSet new_liveout;
 
   for (auto succ : bb->successors()) {
-    // out[n] <- ue[n] U (out[n] - comp(kill[n]))
+    // out[n] <- ue[n] U (out[n] intersection comp(kill[n]))
     // Note: (out[n] - comp(kill[n])) == out[n] - (out[n] intersection kill[n])
     RegSet difference;
 
@@ -173,14 +172,14 @@ void LivenessAnalysis::buildLiveRanges(Bytecode *byte_code,
     }
   }
 
-  for (auto &li_range : byte_code->liveRanges()) {
-    LiveIntervalList &ranges = li_range.second;
-    for (auto range : ranges) {
-      if (range->end() == 0) {
-        range->setEnd(range->end());
-      }
-    }
-  }
+  // for (auto &li_range : byte_code->liveRanges()) {
+  //   LiveIntervalList &ranges = li_range.second;
+  //   for (auto range : ranges) {
+  //     if (range->end() == 0) {
+  //       range->setEnd(range->end());
+  //     }
+  //   }
+  // }
 
   for (auto &iter : byte_code->liveRanges()) {
     LOG(" REG: " << iter.first);

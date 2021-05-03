@@ -41,19 +41,23 @@ public:
   auto result() const { return result_; }
   auto blockResult() const { return block_result_; }
 
-  void setLeft(ValueRef value) { left_ = value; }
-  void setRight(ValueRef value) { right_ = value; }
-  void setBlockResult(ValueRef value) { block_result_ = value; }
-  void setResult(ValueRef value) { block_result_ = value; }
+  void setLeft(ValueRef value) { /* left_ = value; */
+  }
+  void setRight(ValueRef value) { /*  right_ = value; */
+  }
+  void setBlockResult(ValueRef value) { /* block_result_ = value; */
+  }
+  void setResult(ValueRef value) { /* result_ = value; */
+  }
   void setRegister(size_t i, ValueRef value);
   void setStack(int32_t offset, ValueRef value);
 
   void resetOperands();
   void shift(size_t from, size_t offset);
 
-  ValueRef &getRegister(int i) { return registers_[i]; }
-  ValueRef &getStack(int i) { return data_[0]; }
-  ValueRef &getStack() { return data_[stackSize()]; }
+  ValueRef getRegister(int i) { return Value::_undefined(); }
+  ValueRef getStack(int i) { return Value::_undefined(); }
+  ValueRef getStack() { return Value::_undefined(); }
 
   ValueRef pop();
   void pop(size_t count);

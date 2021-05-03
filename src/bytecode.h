@@ -190,7 +190,7 @@ public:
 
   ValueRef getLiteral(LiteralIndex index) {
     assert(index < end_);
-    return Value::_value(literalStart()[end_ - index]);
+    return Value::_value(literalStart()[index]);
   }
 
   void movePoolStart(int32_t offset) {
@@ -198,12 +198,14 @@ public:
   }
 
   uint8_t *setLiteralPool(void *literalStart, BytecodeArguments &args) {
-    literal_start_ = reinterpret_cast<ecma_value_t *>(literalStart);
+    literal_start_ =
+        reinterpret_cast<ecma_value_t *>(literalStart) - args.registerEnd();
     end_ = args.literalEnd();
     size_ = end_ - args.registerEnd();
 
     /* Bytecode start */
-    return reinterpret_cast<uint8_t *>(literal_start_ + size_);
+    return reinterpret_cast<uint8_t *>(
+        reinterpret_cast<ecma_value_t *>(literalStart) + size_);
   }
 
 private:
@@ -240,7 +242,7 @@ public:
   Ins *insAt(int32_t offset) { return offsetToInst().find(offset)->second; }
 
   size_t compiledCodesize() const {
-    return compiledCode()->size << JMEM_ALIGNMENT_LOG;
+    return static_cast<size_t>(compiledCode()->size) << JMEM_ALIGNMENT_LOG;
   }
 
   void setArguments(cbc_uint16_arguments_t *args);

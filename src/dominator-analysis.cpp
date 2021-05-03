@@ -22,12 +22,12 @@ bool DominatorAnalysis::run(Optimizer *optimizer, Bytecode *byte_code) {
   BasicBlockList &bbs = byte_code->basicBlockList();
 
   for (auto &bb : bbs) {
-    bb->dominated() = nullptr;
+    bb->idom() = nullptr;
     bb->dominators().clear();
   }
 
   computeDominators(bbs);
-  computeDominated(bbs);
+  computeImmDominator(bbs);
 
   return true;
 }
@@ -37,9 +37,9 @@ bool DominatorAnalysis::dominatedBy(BasicBlock *who, BasicBlock *by) {
          who->dominators().end();
 }
 
-void DominatorAnalysis::computeDominated(BasicBlockList &bbs) {
+void DominatorAnalysis::computeImmDominator(BasicBlockList &bbs) {
   auto iter = bbs.begin();
-  assert((*iter)->dominated() == nullptr); // the first node has no idom
+  assert((*iter)->idom() == nullptr); // the first node has no idom
 
   for (iter++; iter != bbs.end(); iter++) {
     BasicBlock *bb = (*iter);
@@ -68,12 +68,12 @@ void DominatorAnalysis::computeDominated(BasicBlockList &bbs) {
     }
 
     // The remaining element in the doms will be de immidiate dominator
-    bb->dominated() = doms.back();
+    bb->idom() = doms.back();
   }
 
   for (auto &bb : bbs) {
-    if (bb->dominated()) {
-      LOG("BB: " << bb->id() << "'s idom: " << bb->dominated()->id());
+    if (bb->idom()) {
+      LOG("BB: " << bb->id() << "'s idom: " << bb->idom()->id());
     } else {
       LOG("BB: " << bb->id() << "'s idom: -");
     }
@@ -84,7 +84,7 @@ void DominatorAnalysis::computeDominators(BasicBlockList &bbs) {
   // dominator of the start node is the start itself
   bbs[0]->dominators().push_back(bbs[0]);
 
-  // // for all other nodes, set all nodes as the dominators
+  // for all other nodes, set all nodes as the dominators
   auto iter_start = ++bbs.begin();
 
   for (auto iter = iter_start; iter != bbs.end(); iter++) {
@@ -106,24 +106,31 @@ void DominatorAnalysis::computeDominators(BasicBlockList &bbs) {
       std::unordered_set<BasicBlock *> intersect{pred->dominators().begin(),
                                                  pred->dominators().end()};
 
-      std::unordered_set<BasicBlock *> matches;
+      // std::unordered_set<BasicBlock *> matches;
 
       for (auto iter = ++iter_start; iter != preds.end(); iter++) {
         pred = *iter;
 
-        for (auto &dom : pred->dominators()) {
-          if (intersect.find(dom) != intersect.end()) {
-            matches.insert(dom);
-          }
-        }
-
         for (auto &elem : intersect) {
-          if (matches.find(elem) == matches.end()) {
+          if (std::find(pred->dominators().begin(), pred->dominators().end(),
+                        elem) == pred->dominators().end()) {
             intersect.erase(elem);
           }
         }
 
-        matches.clear();
+        // for (auto &dom : pred->dominators()) {
+        //   if (intersect.find(dom) != intersect.end()) {
+        //     matches.insert(dom);
+        //   }
+        // }
+
+        // for (auto &elem : intersect) {
+        //   if (matches.find(elem) == matches.end()) {
+        //     intersect.erase(elem);
+        //   }
+        // }
+
+        // matches.clear();
       }
 
       intersect.insert({bb});

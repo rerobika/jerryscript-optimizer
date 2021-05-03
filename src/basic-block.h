@@ -28,11 +28,11 @@ using PredecessorTraverser = SuccessorTraverser;
 class BasicBlock {
 public:
   BasicBlock() : BasicBlock(INVALID_BASIC_BLOCK_ID) {}
-  BasicBlock(BasicBlockID id) : flags_(0), id_(id) {}
+  BasicBlock(BasicBlockID id) : idom_(nullptr), flags_(0), id_(id) {}
 
   auto &predecessors() { return predecessors_; }
   auto &successors() { return successors_; }
-  auto &dominated() { return dominated_; }
+  auto &idom() { return idom_; }
   auto &dominators() { return dominators_; }
 
   auto &insns() { return insts_; }
@@ -132,7 +132,7 @@ private:
   // DominatorAnalysis
   BasicBlockList predecessors_;
   BasicBlockList successors_;
-  BasicBlock *dominated_;
+  BasicBlock *idom_;
   BasicBlockList dominators_;
 
   // Liveness
