@@ -38,8 +38,18 @@ int main(int argc, char const *argv[]) {
 
   std::ostringstream buff;
   std::ifstream input_stream(argparser.get<std::string>("i").c_str());
+
+  if (input_stream.fail()) {
+    std::cerr << "Cannot open file: " << argparser.get<std::string>("i")
+              << std::endl;
+    return 2;
+  }
+
   buff << input_stream.rdbuf();
   auto input_str = buff.str();
+
+  std::cout << "Input file '" << argparser.get<std::string>("i") << "' ("
+            << input_str.size() << " bytes) loaded." << std::endl;
 
   optimizer::SnapshotReadWriter snapshot(input_str);
   auto read_res = snapshot.read();
@@ -56,7 +66,14 @@ int main(int argc, char const *argv[]) {
       .addPass(new optimizer::RegallocLinearScan());
   optimizer.run();
 
-  std::string out = "optimized.snapshot";
+  std::string out;
+
+  if (argparser.exists("o")) {
+    out = argparser.get<std::string>("o");
+  } else {
+    out = "optimized.snapshot";
+  }
+
   auto write_res = snapshot.write(out, read_res.list());
 
   if (write_res.failed()) {

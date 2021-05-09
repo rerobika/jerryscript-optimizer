@@ -215,7 +215,7 @@ void Bytecode::emitHeader(std::vector<uint8_t> &buffer) {
   rbuffer += args_.size();
 
   /* write literal pool */
-  memcpy(rbuffer, literal_pool_.literalStart(), lit_pool_size);
+  memcpy(rbuffer, literal_pool_.literalPoolStart(), lit_pool_size);
 }
 
 void Bytecode::emitInstructions(std::vector<uint8_t> &buffer) {
@@ -234,20 +234,17 @@ void Bytecode::emit() {
   emitHeader(buffer);
   emitInstructions(buffer);
 
-  size_t total_size = JERRY_ALIGNUP(buffer.size(), JMEM_ALIGNMENT);
+  size_t current_size = buffer.size();
+  size_t total_size = JERRY_ALIGNUP(current_size + end_info_, JMEM_ALIGNMENT);
+  buffer.resize(total_size);
 
-  while (buffer.size() != total_size) {
-    buffer.push_back(0);
-  }
+  memset(buffer.data() + current_size, 0, total_size - current_size);
 
   if (end_info_ != 0) {
-    buffer.resize(buffer.size() + end_info_);
-    memcpy(buffer.data() + buffer.size(),
+    memcpy(buffer.data() + total_size - end_info_,
            reinterpret_cast<uint8_t *>(compiled_code_) + compiledCodesize() -
                end_info_,
            end_info_);
-
-    total_size = JERRY_ALIGNUP(buffer.size(), JMEM_ALIGNMENT);
   }
 
   jmem_heap_free_block(compiled_code_,
@@ -256,7 +253,7 @@ void Bytecode::emit() {
   compiled_code_ = reinterpret_cast<ecma_compiled_code_t *>(
       jmem_heap_alloc_block(total_size));
   memcpy(compiled_code_, buffer.data(), total_size);
-  compiled_code_->size = total_size >> JMEM_ALIGNMENT_LOG;
+  compiled_code_->size = (uint16_t)(total_size >> JMEM_ALIGNMENT_LOG);
 
   if (parent_) {
     assert(parent_->flags().isFunction());

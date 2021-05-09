@@ -28,7 +28,7 @@ SnapshotReadResult::~SnapshotReadResult() {
 
 SnapshotReadWriter::SnapshotReadWriter(std::string &snapshot)
     : snapshot_(snapshot) {
-  jerry_init(JERRY_INIT_SHOW_OPCODES);
+  jerry_init(JERRY_INIT_EMPTY);
   jerry_port_default_set_log_level(JERRY_LOG_LEVEL_DEBUG);
 }
 
@@ -187,6 +187,9 @@ SnapshotWriteResult SnapshotReadWriter::write(std::string &path,
   output.open(path, std::ios::out | std::ios::binary);
   output.write(reinterpret_cast<char *>(final_snapshot), final_size);
   output.close();
+
+  std::cout << "Created snapshot file '" << path << "' (" << final_size
+            << " bytes) loaded." << std::endl;
 
   return {};
 }

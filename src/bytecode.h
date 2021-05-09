@@ -88,7 +88,7 @@ public:
     literal_end_ = args->literal_end;
     stack_limit_ = args->stack_limit;
 #if ENABLED(JERRY_BUILTIN_REALMS)
-    realm_value_ = realm_value_;
+    realm_value_ = args->realm_value;
 #endif
     size_ = static_cast<uint16_t>(sizeof(cbc_uint16_arguments_t));
   }
@@ -101,7 +101,7 @@ public:
     literal_end_ = static_cast<uint16_t>(args->literal_end);
     stack_limit_ = static_cast<uint16_t>(args->stack_limit);
 #if ENABLED(JERRY_BUILTIN_REALMS)
-    realm_value_ = realm_value_;
+    realm_value_ = args->realm_value;
 #endif
     size_ = static_cast<uint16_t>(sizeof(cbc_uint8_arguments_t));
   }
@@ -184,6 +184,7 @@ class LiteralPool {
 public:
   LiteralPool() {}
 
+  auto literalPoolStart() const { return literal_pool_start_; }
   auto literalStart() const { return literal_start_; }
   auto end() const { return end_; }
   auto size() const { return size_; }
@@ -198,8 +199,8 @@ public:
   }
 
   uint8_t *setLiteralPool(void *literalStart, BytecodeArguments &args) {
-    literal_start_ =
-        reinterpret_cast<ecma_value_t *>(literalStart) - args.registerEnd();
+    literal_pool_start_ = reinterpret_cast<ecma_value_t *>(literalStart);
+    literal_start_ = literal_pool_start_ - args.registerEnd();
     end_ = args.literalEnd();
     size_ = end_ - args.registerEnd();
 
@@ -209,6 +210,7 @@ public:
   }
 
 private:
+  ecma_value_t *literal_pool_start_;
   ecma_value_t *literal_start_;
   uint16_t size_;
   uint16_t end_;
