@@ -417,7 +417,7 @@ void Ins::decodeGroupOpcode() {
       break;
     }
 
-    setStringLiteral();
+    setStringLiteral(literal_index);
     break;
   }
 #if ENABLED(JERRY_SNAPSHOT_EXEC)
@@ -445,7 +445,7 @@ void Ins::decodeGroupOpcode() {
       break;
     }
 
-    setStringLiteral();
+    setStringLiteral(literal_index);
     setLiteralValue(lit_value);
     break;
   }

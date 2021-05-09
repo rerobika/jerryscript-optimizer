@@ -19,8 +19,11 @@ RegallocLinearScan::~RegallocLinearScan() {}
 
 bool RegallocLinearScan::run(Optimizer *optimizer, Bytecode *byte_code) {
   assert(optimizer->isSucceeded(PassKind::LIVENESS_ANALYZER));
+  intervals_.clear();
+  new_regs_count_ = 0;
 
-  /* arguments are also stored in register therefore they ar included as well */
+  /* arguments are also stored in register therefore they ar included as
+     well */
   regs_count_ = byte_code->args().registerEnd();
 
   if (regs_count_ == 0) {

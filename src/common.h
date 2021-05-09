@@ -24,7 +24,7 @@
 #include <vector>
 
 #ifndef DEBUG_DUMP
-#define DEBUG_DUMP 1
+#define DEBUG_DUMP 0
 #endif
 
 #if DEBUG_DUMP
@@ -35,6 +35,9 @@
 #else
 #define LOG(x)                                                                 \
   do {                                                                         \
+    if (0) {                                                                   \
+      std::cout << x << std::endl;                                             \
+    }                                                                          \
   } while (0)
 #endif
 

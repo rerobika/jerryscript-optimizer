@@ -185,8 +185,7 @@ SnapshotWriteResult SnapshotReadWriter::write(std::string &path,
 
   std::ofstream output;
   output.open(path, std::ios::out | std::ios::binary);
-  output.write(reinterpret_cast<char *>(final_snapshot),
-                            final_size);
+  output.write(reinterpret_cast<char *>(final_snapshot), final_size);
   output.close();
 
   return {};

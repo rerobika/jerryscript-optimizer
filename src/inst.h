@@ -331,6 +331,15 @@ public:
     }
   }
 
+  void setStringLiteral(LiteralIndex index) {
+    assert(index >= byteCode()->args().registerEnd() &&
+           index < byteCode()->args().identEnd());
+
+    Literal literal{LiteralType::IDENT, index};
+    argument_.addLiteral(literal);
+    setStringLiteral(literal);
+  }
+
   void setStringLiteral() {
     Literal literal = decodeStringLiteral();
     argument_.addLiteral(literal);
