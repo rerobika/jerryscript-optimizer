@@ -17,7 +17,6 @@ int main(int argc, char const *argv[]) {
   argparser.add_argument()
       .names({"-i", "--input"})
       .description("Input snapshot to optimize")
-      .position(argparse::ArgumentParser::Argument::Position::LAST)
       .required(true);
   argparser.add_argument()
       .names({"-o", "--output"})
