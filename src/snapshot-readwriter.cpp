@@ -189,7 +189,7 @@ SnapshotWriteResult SnapshotReadWriter::write(std::string &path,
   output.close();
 
   std::cout << "Created snapshot file '" << path << "' (" << final_size
-            << " bytes) loaded." << std::endl;
+            << " bytes)." << std::endl;
 
   return {};
 }

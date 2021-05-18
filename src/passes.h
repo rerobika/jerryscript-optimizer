@@ -9,7 +9,7 @@
 #ifndef PASSES_H
 #define PASSES_H
 
-#include "cfg-analysis.h"
+#include "control-flow-analysis.h"
 #include "dominator-analysis.h"
 #include "liveness-analysis.h"
 #include "regalloc-linear-scan.h"

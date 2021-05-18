@@ -17,7 +17,7 @@ LivenessAnalysis::LivenessAnalysis() : Pass() {}
 LivenessAnalysis::~LivenessAnalysis() {}
 
 bool LivenessAnalysis::run(Optimizer *optimizer, Bytecode *byte_code) {
-  assert(optimizer->isSucceeded(PassKind::DOMINATOR));
+  assert(optimizer->isSucceeded(PassKind::DOMINATOR_ANALYSIS));
 
   regs_count_ = byte_code->args().registerEnd();
 

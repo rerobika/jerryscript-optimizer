@@ -26,7 +26,7 @@ public:
 
   virtual const char *name() { return "LivenessAnalysis"; }
 
-  virtual PassKind kind() { return PassKind::LIVENESS_ANALYZER; }
+  virtual PassKind kind() { return PassKind::LIVENESS_ANALYSIS; }
 
 private:
   bool setsEqual(RegSet &a, RegSet &b);

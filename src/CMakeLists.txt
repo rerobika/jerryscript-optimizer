@@ -8,7 +8,7 @@
 set(SRC
     basic-block.cpp
     bytecode.cpp
-    cfg-analysis.cpp
+    control-flow-analysis.cpp
     dominator-analysis.cpp
     inst.cpp
     liveness-analysis.cpp

@@ -18,7 +18,7 @@ RegallocLinearScan::RegallocLinearScan() : Pass(), new_regs_count_(0) {}
 RegallocLinearScan::~RegallocLinearScan() {}
 
 bool RegallocLinearScan::run(Optimizer *optimizer, Bytecode *byte_code) {
-  assert(optimizer->isSucceeded(PassKind::LIVENESS_ANALYZER));
+  assert(optimizer->isSucceeded(PassKind::LIVENESS_ANALYSIS));
   intervals_.clear();
   new_regs_count_ = 0;
 

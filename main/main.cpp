@@ -60,7 +60,7 @@ int main(int argc, char const *argv[]) {
   }
 
   optimizer::Optimizer optimizer(read_res.list());
-  optimizer.addPass(new optimizer::CFGAnalysis())
+  optimizer.addPass(new optimizer::ControlFlowAnalysis())
       .addPass(new optimizer::DominatorAnalysis())
       .addPass(new optimizer::LivenessAnalysis())
       .addPass(new optimizer::RegallocLinearScan());

@@ -19,16 +19,16 @@ namespace optimizer {
 
 class Optimizer;
 
-class CFGAnalysis : public Pass {
+class ControlFlowAnalysis : public Pass {
 public:
-  CFGAnalysis();
-  ~CFGAnalysis();
+  ControlFlowAnalysis();
+  ~ControlFlowAnalysis();
 
   virtual bool run(Optimizer *optimizer, Bytecode *byte_code);
 
-  virtual const char *name() { return "CFGAnalysis"; }
+  virtual const char *name() { return "ControlFlowAnalysis"; }
 
-  virtual PassKind kind() { return PassKind::CFG_BUILDER; }
+  virtual PassKind kind() { return PassKind::CONTROL_FLOW_ANALYSIS; }
 
 private:
   void findLeaders();

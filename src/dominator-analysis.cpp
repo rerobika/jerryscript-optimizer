@@ -17,7 +17,7 @@ DominatorAnalysis::DominatorAnalysis() : Pass() {}
 DominatorAnalysis::~DominatorAnalysis() {}
 
 bool DominatorAnalysis::run(Optimizer *optimizer, Bytecode *byte_code) {
-  assert(optimizer->isSucceeded(PassKind::CFG_BUILDER));
+  assert(optimizer->isSucceeded(PassKind::CONTROL_FLOW_ANALYSIS));
 
   BasicBlockList &bbs = byte_code->basicBlockList();
 

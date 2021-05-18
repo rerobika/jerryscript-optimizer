@@ -6,16 +6,16 @@
  * according to those terms.
  */
 
-#include "cfg-analysis.h"
+#include "control-flow-analysis.h"
 #include "optimizer.h"
 
 namespace optimizer {
 
-CFGAnalysis::CFGAnalysis() : Pass() {}
+ControlFlowAnalysis::ControlFlowAnalysis() : Pass() {}
 
-CFGAnalysis::~CFGAnalysis() {}
+ControlFlowAnalysis::~ControlFlowAnalysis() {}
 
-bool CFGAnalysis::run(Optimizer *optimizer, Bytecode *byte_code) {
+bool ControlFlowAnalysis::run(Optimizer *optimizer, Bytecode *byte_code) {
   byte_code_ = byte_code;
   bb_id_ = 0;
   bbs_.clear();
@@ -33,14 +33,14 @@ bool CFGAnalysis::run(Optimizer *optimizer, Bytecode *byte_code) {
   return true;
 }
 
-BasicBlock *CFGAnalysis::newBB() {
+BasicBlock *ControlFlowAnalysis::newBB() {
   BasicBlock *bb = BasicBlock::create(bb_id_++);
   bbs_.push_back(bb);
 
   return bb;
 }
 
-void CFGAnalysis:: findLeaders() {
+void ControlFlowAnalysis:: findLeaders() {
 
   auto &insns = byte_code_->instructions();
   auto iter = insns.begin();
@@ -82,7 +82,7 @@ void CFGAnalysis:: findLeaders() {
   }
 }
 
-void CFGAnalysis::buildBlocks() {
+void ControlFlowAnalysis::buildBlocks() {
 
   auto &insns = byte_code_->instructions();
   auto iter = leaders_.begin();
@@ -120,7 +120,7 @@ void CFGAnalysis::buildBlocks() {
   bbs_.push_back(bb_end);
 }
 
-void CFGAnalysis::connectBlocks() {
+void ControlFlowAnalysis::connectBlocks() {
   for (auto bb : bbs_) {
     if (!bb->isValid()) {
       continue;

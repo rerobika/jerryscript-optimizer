@@ -30,7 +30,7 @@ public:
   }
 
   virtual PassKind kind() {
-    return PassKind::DOMINATOR;
+    return PassKind::DOMINATOR_ANALYSIS;
   }
 
 private:
