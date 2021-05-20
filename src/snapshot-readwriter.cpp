@@ -124,7 +124,6 @@ uint32_t SnapshotReadWriter::writeSnapshot(Bytecode *bytecode,
     if (!ecma_save_literals_for_snapshot(lit_pool_p, buffer_p, buffer_size,
                                          &globals.snapshot_buffer_write_offset,
                                          &lit_map_p, &literals_num)) {
-      JERRY_ASSERT(lit_map_p == NULL);
       return 0;
     }
 

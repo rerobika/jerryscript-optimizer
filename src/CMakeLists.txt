@@ -23,7 +23,6 @@ set(SRC
 add_library(optimizer-core STATIC ${SRC})
 add_dependencies(optimizer-core jerry-core)
 
-message(${CMAKE_BINARY_DIR})
 target_include_directories (optimizer-core
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
   PUBLIC ${CMAKE_BINARY_DIR}/deps/jerryscript/amalgam/
@@ -40,6 +39,13 @@ target_include_directories (optimizer-core
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-core/parser/js
   PUBLIC ${JERRYSCRIPT_DIR}/jerry-port/default/include
 )
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+  target_compile_definitions(optimizer-core
+      PUBLIC JERRY_NDEBUG
+    )
+endif()
+
 target_link_libraries (optimizer-core
   PRIVATE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libjerry-core${CMAKE_STATIC_LIBRARY_SUFFIX}
   PRIVATE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libjerry-port-default${CMAKE_STATIC_LIBRARY_SUFFIX})

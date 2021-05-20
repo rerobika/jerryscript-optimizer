@@ -87,7 +87,8 @@ class Argument {
 public:
   Argument() : Argument(OperandType::OPERAND_TYPE__COUNT) {}
   Argument(OperandType type)
-      : type_(type), branch_offset_(0), byte_arg_(UINT32_MAX) {}
+      : type_(type), branch_offset_(0), line_info_(0), byte_arg_(UINT32_MAX),
+        stack_delta_(0) {}
 
   auto branchOffset() const { return branch_offset_; }
   auto type() const { return type_; }
